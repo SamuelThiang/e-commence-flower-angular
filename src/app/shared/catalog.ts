@@ -1,0 +1,123 @@
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  description: string;
+  seasonal?: boolean;
+  exclusive?: boolean;
+  limited?: boolean;
+  orderCount: number;
+}
+
+export const PRODUCTS: Product[] = [
+  {
+    id: '1',
+    name: 'Ethereal Amethyst Orchid',
+    category: 'Birthday',
+    price: 185,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBqye-CdqoXFVcqKwD1BNyCmNqMTrvTijWI_Id7rxv8EJPtwqguBJbMuP1YSjxUzuY4PMRfEi7DfJQPce1bfRHqyKQ_1aJTeDzpogfXUPGYXVWW_EPjEWS5Ci0XnvsoplsxSPFTQog_s319YMoyqtVVIDTi2V9QEd0fKvBGMMFGX_-Sl7rvMt-6FH_8pHDt8fYye4y61bZHtGhtBYuSqQHUauGtz1qdKU_SifMFLbgzDdWaMhNWcaMe_mlEvS-LvTQdAQ87EdD2_lmU',
+    description: 'A curated botanical specimen of extraordinary depth. The Ethereal Amethyst Orchid features hand-selected Phalaenopsis stems characterized by their deep, velvety violet hues and translucent edge highlights.',
+    limited: true,
+    orderCount: 150,
+  },
+  {
+    id: '2',
+    name: 'Lunar Fern',
+    category: "Mother's Day",
+    price: 128,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBiHUIir4rAlQFmtUb1lHSCymgQcYjHY8X66PDX2ZBDh1jkb57UhU6QUk-tT_pPHHClJZgYSoDbbnvkytqXTyKZuuqmOgjap8JBmM7nm35XAGHZXrQ_LdTjWYDPdKGKr9m2g5reFGGVblG8Fw5C7dkLk1fUjKfkg6GT8X4h9HJIOB2TR8BZSEQhqSdA6vdaRmvT2eYGWh8HGiHWQpxdWxGoQyaKAAVZK-dTL_rc4nWeUG4sE44Q4NCl95Sglxig2laC6ivfBTxipvZ7',
+    description: 'Silver-threaded fronds from the high Sierras.',
+    orderCount: 85,
+  },
+  {
+    id: '3',
+    name: 'Obsidian Orchid',
+    category: "Father's Day",
+    price: 210,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCKec7oxlOTqx5YQhsmYAcJ25OdlO8pHLtDadeud012pmeaZp-nHZs4-Z_ueL7dy6zgzMEmRT57gT08V6BII9Uv0l43rFKYT1Ak_hXNtTvv07ij05H60bdXwhhB6sV5CACkLmie8pFvC1ATtLQZ8pA68aShbEHPB6Nx-OO1IY0BVpOitmRBZBAld4XxY4PP5gtk6QYobV378dr-dEEeImLAlucloJ_Vlu_QZI6eh8ulh63dx2cew7k3THu1o_E4s0u6ZVjn7bWwymRh',
+    description: 'Deep velvet petals with midnight undertones.',
+    seasonal: true,
+    orderCount: 210,
+  },
+  {
+    id: '4',
+    name: 'Ethereal Frost',
+    category: 'Graduation',
+    price: 185,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_1Z0mBZGt6O1rpxQ11BLD1mLhldWjcVIx5jftv2VnsdnNzfbfEUvDR2xNycqwjECMU5uXm5HiGZMuZ0A3PIa6srMXo53cwu_MD-asoj9eGEku4IbYgC2gspwQ890JDngfgWy6hUx-o2hNXSxoHir_sXAfp2zD48_37Yd2vUada91RUgxlWGe3X_IuAkzPz4M5ZkjHA3l_JD_l7oSVINylvNfUD5-nEstci_twiqCbzrSP6cj4iSvRq2TQ7yhA9PIf8PJBwWLsrKts',
+    description: 'Minimalist sculptural bouquet of white lilies and orchids.',
+    limited: true,
+    orderCount: 45,
+  },
+  {
+    id: '5',
+    name: 'Golden Hour',
+    category: 'Congratulations-Grand-Opening',
+    price: 145,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCiX41UelIIQSRSGR6w37bqKz-618usui7CvWsyIzWv2Z9tB9bcHQdKUkHwqZwbo5-_cFsTiU1WS3JIaLfeZlWm4eZlNkvUnaN2tSR4MBdFMmG0Lpv_aaJ0MMEQIg0CQNdarkrEBRO3oPLaC8A8WsP7mqD-FsLWIgQqE4u6vkJemjlnE-YzSUzrBtoDK56yWtTFx9ozsYCkw4X4JDVrTq-rGHFbYdslgt05esL3ylivNDFlDmlOnljkRFsNefmWnYRmyX8AI08O3hKv',
+    description: 'Elegant arrangement of soft peach peonies and golden ranunculus.',
+    orderCount: 320,
+  },
+  {
+    id: '6',
+    name: 'Obsidian Bloom',
+    category: 'Valentines-day-special',
+    price: 220,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBVZwCfG27B0qXY7BtvHzzXGcaa0T5F3JbJWeQ_pWAMvpjXzwdFUylKe2dGhodMNf5GbQL5MNYnIk8HR4kY167m16IbXo-Lx5WtBJ7df_3qG-0j5mCGxzqVLM_qiNVKpF8S05Bhoh7WHmNd2lA3AqStouxemTnBCum-lQ2H5HJsJpV5rB9Mh12u-cQZvXBI7SI_-TqDEAIFoOstagq4c8CWLXCBLRkCpK78NgUhc5auHUY1YMDifvwUolZilr9NwORmLnBzkhxyw826',
+    description: 'Dramatic bouquet of deep purple hydrangeas and black calla lilies.',
+    exclusive: true,
+    orderCount: 190,
+  },
+  {
+    id: '7',
+    name: 'The Protagonist',
+    category: 'Birthday',
+    price: 95,
+    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC7I4qPzMdQrR4sm8fjSzSf1MLonXC_fYHxtzLuvAoLf2FwRibboo-dLzXPOofPxb3n44oCVBpwuuzpqisrf345XfrWFEXHL4mw6QoPF0d3KY_DfCougMRsooF9UfNYn-zk9idNd9AVtHe6QFevlgnYuqLiMB0FqvF_AJAvDiESm_sofm9KfgQOIO9IJEGrzV938ADzYyxEAVJTho_SXPlrYgECd_-gnh4ww1x7toZmvMKwodmx_j3SjgZBg9Lu05CfuJIe4KB0OqIQ',
+    description: 'Single exotic protea flower with intricate pink textures.',
+    orderCount: 65,
+  },
+];
+
+export interface UserAddress {
+  id: string;
+  address: string;
+  isDefault: boolean;
+  label: string;
+}
+
+export interface ShippingDetail {
+  address: string;
+  hasGiftCard: boolean;
+  giftMessage?: string;
+  preferredDeliveryDate?: string;
+}
+
+export interface OrderItem {
+  product: Product;
+  quantity: number;
+  shippingDetails?: ShippingDetail[];
+}
+
+export interface Order {
+  id: string;
+  date: string;
+  status: 'Delivered' | 'In Transit' | 'Processing';
+  items: OrderItem[];
+  total: number;
+  uid?: string;
+  preferredDeliveryDate?: string;
+  deliveryOption?: 'delivery' | 'pickup';
+}
+
+export interface CartLine {
+  product: Product;
+  quantity: number;
+  preferredDeliveryDate: string;
+}
+
+export function productById(id: string): Product | undefined {
+  return PRODUCTS.find((p) => p.id === id);
+}

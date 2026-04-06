@@ -1,0 +1,193 @@
+<div class="pt-32 pb-24 px-8 max-w-[1440px] mx-auto min-h-screen">
+  <header class="mb-12 flex justify-between items-end">
+    <div>
+      <h1 class="text-4xl font-extrabold tracking-tighter text-on-surface mb-2">
+        Profile & Settings
+      </h1>
+      <p class="text-on-surface-variant font-medium">
+        Manage your botanical delivery preferences.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="toggleAdding()"
+      class="bg-zinc-900 text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors"
+    >
+      {{ isAdding() ? 'Cancel' : 'Add New Address' }}
+    </button>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+    <div class="lg:col-span-8 space-y-6">
+      @if (isAdding()) {
+        <div
+          class="glass-card p-8 rounded-2xl border border-zinc-200 mb-8"
+        >
+          <form (submit)="submitAddress($event)" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label
+                  class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                  >Label (e.g. Home)</label
+                >
+                <input
+                  type="text"
+                  required
+                  [value]="newAddress().label"
+                  (input)="setNewLabel($any($event.target).value)"
+                  class="w-full bg-surface-container-low border border-black/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-zinc-900 transition-all"
+                />
+              </div>
+              <div class="space-y-2">
+                <label
+                  class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                  >Full Address</label
+                >
+                <input
+                  type="text"
+                  required
+                  [value]="newAddress().address"
+                  (input)="setNewAddressLine($any($event.target).value)"
+                  class="w-full bg-surface-container-low border border-black/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-zinc-900 transition-all"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="w-full py-4 rounded-full bg-zinc-900 text-white font-bold text-xs uppercase tracking-widest"
+            >
+              Save Address
+            </button>
+          </form>
+        </div>
+      }
+
+      <div class="space-y-4">
+        <h2 class="text-xl font-bold tracking-tight mb-6">Saved Addresses</h2>
+        @if (addresses().length === 0) {
+          <div
+            class="text-center py-12 glass-card rounded-2xl border border-dashed border-zinc-300"
+          >
+            <p class="text-on-surface-variant">No saved addresses found.</p>
+          </div>
+        } @else {
+          @for (addr of addresses(); track addr.id) {
+            <div
+              [class]="
+                'glass-card p-6 rounded-2xl border transition-all ' +
+                (addr.isDefault
+                  ? 'border-zinc-900 shadow-md'
+                  : 'border-zinc-100')
+              "
+            >
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="flex items-center gap-3 mb-2">
+                    <h3 class="font-bold text-lg">{{ addr.label }}</h3>
+                    @if (addr.isDefault) {
+                      <span
+                        class="bg-zinc-900 text-white text-[8px] uppercase tracking-widest px-2 py-1 rounded-full font-bold"
+                        >Default</span
+                      >
+                    }
+                  </div>
+                  <p class="text-on-surface-variant text-sm">{{ addr.address }}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                  <div class="flex flex-col items-end gap-2">
+                    <span
+                      class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                      >Default</span
+                    >
+                    <button
+                      type="button"
+                      (click)="toggleDefault(addr.id)"
+                      [class]="
+                        'w-12 h-6 rounded-full transition-colors relative ' +
+                        (addr.isDefault ? 'bg-zinc-900' : 'bg-zinc-200')
+                      "
+                    >
+                      <div
+                        [class]="
+                          'absolute top-1 w-4 h-4 bg-white rounded-full transition-all ' +
+                          (addr.isDefault ? 'right-1' : 'left-1')
+                        "
+                      ></div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="lg:col-span-4">
+      <div
+        class="glass-card p-8 rounded-2xl border border-zinc-100 sticky top-32 space-y-8"
+      >
+        <div>
+          <h2 class="text-xl font-bold tracking-tight mb-6">Account Details</h2>
+          <div class="space-y-4">
+            <div>
+              <label
+                class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                >Name</label
+              >
+              <p class="font-medium">{{ authService.user()?.displayName }}</p>
+            </div>
+            <div>
+              <label
+                class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                >Email</label
+              >
+              <p class="font-medium">{{ authService.user()?.email }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 class="text-xl font-bold tracking-tight mb-6">
+            Contact Information
+          </h2>
+          <form (submit)="updatePhone($event)" class="space-y-4">
+            <div class="space-y-2">
+              <label
+                class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                >Phone Number</label
+              >
+              <input
+                type="tel"
+                required
+                [value]="phone()"
+                (input)="phone.set($any($event.target).value)"
+                placeholder="+60 12-345 6789"
+                class="w-full bg-surface-container-low border border-black/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-zinc-900 transition-all"
+              />
+            </div>
+            <button
+              type="submit"
+              [disabled]="isUpdatingPhone()"
+              class="w-full py-3 rounded-full bg-zinc-900 text-white font-bold text-[10px] uppercase tracking-widest disabled:opacity-50"
+            >
+              {{ isUpdatingPhone() ? 'Updating...' : 'Update Phone' }}
+            </button>
+          </form>
+        </div>
+
+        @if (!phone() || addresses().length === 0) {
+          <div class="p-4 bg-amber-50 border border-amber-100 rounded-xl">
+            <p class="text-[10px] text-amber-800 font-medium leading-relaxed">
+              <span class="font-bold uppercase tracking-widest block mb-1"
+                >Profile Incomplete</span
+              >
+              Please provide your phone number and at least one delivery address
+              to complete your acquisitions.
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,410 @@
+<div
+  class="pt-24 md:pt-32 pb-12 md:pb-24 px-4 md:px-8 max-w-[1440px] mx-auto min-h-screen"
+>
+  <header class="mb-8 md:mb-12">
+    <h1
+      class="text-3xl md:text-4xl font-extrabold tracking-tighter text-on-surface mb-2"
+    >
+      Checkout
+    </h1>
+    <p class="text-on-surface-variant font-medium text-sm md:text-base">
+      Configure shipping and personal touches for your specimens.
+    </p>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
+    <div class="lg:col-span-8 space-y-6">
+      <div class="lg:hidden">
+        <button
+          type="button"
+          (click)="toggleProductsExpanded()"
+          class="w-full flex justify-between items-center p-6 glass-card rounded-2xl border border-zinc-200"
+        >
+          <h2 class="text-xl font-bold tracking-tighter">
+            Products ({{ units().length }})
+          </h2>
+          <lucide-icon
+            name="chevron-down"
+            [size]="20"
+            [class]="
+              'transition-transform duration-300 ' +
+              (isProductsExpanded() ? 'rotate-180' : '')
+            "
+          />
+        </button>
+      </div>
+
+      @if (showProductsBlock()) {
+        <div class="space-y-6 overflow-hidden">
+          <div class="space-y-4">
+            <h2
+              class="text-sm font-bold uppercase tracking-widest text-on-surface-variant ml-1"
+            >
+              Option :
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                type="button"
+                (click)="deliveryOption.set('delivery')"
+                [class]="
+                  'flex items-center gap-4 p-6 rounded-2xl border transition-all text-left ' +
+                  (deliveryOption() === 'delivery'
+                    ? 'bg-zinc-50 border-zinc-900 shadow-sm'
+                    : 'bg-white border-zinc-100 hover:border-zinc-200')
+                "
+              >
+                <div
+                  [class]="
+                    'w-10 h-10 rounded-full flex items-center justify-center ' +
+                    (deliveryOption() === 'delivery'
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-zinc-100 text-zinc-400')
+                  "
+                >
+                  <lucide-icon name="truck" [size]="20" />
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-zinc-900">Lalamove Delivery</p>
+                  <p class="text-[10px] text-zinc-500 leading-tight mt-1">
+                    (receive within 12pm-6pm) //// For 13/2 & 14/2 (receive
+                    within 12pm-8pm) [Cannot fix timing]
+                  </p>
+                </div>
+              </button>
+              <button
+                type="button"
+                (click)="deliveryOption.set('pickup')"
+                [class]="
+                  'flex items-center gap-4 p-6 rounded-2xl border transition-all text-left ' +
+                  (deliveryOption() === 'pickup'
+                    ? 'bg-zinc-50 border-zinc-900 shadow-sm'
+                    : 'bg-white border-zinc-100 hover:border-zinc-200')
+                "
+              >
+                <div
+                  [class]="
+                    'w-10 h-10 rounded-full flex items-center justify-center ' +
+                    (deliveryOption() === 'pickup'
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-zinc-100 text-zinc-400')
+                  "
+                >
+                  <lucide-icon name="map-pin" [size]="20" />
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-zinc-900">Pickup</p>
+                  <p class="text-[10px] text-zinc-500 leading-tight mt-1">
+                    Collect from our flagship gallery
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          @if (deliveryOption() === 'delivery') {
+            <div
+              class="flex flex-col md:flex-row gap-8 items-start md:items-center justify-start glass-card p-6 rounded-2xl border border-zinc-200"
+            >
+              <div class="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="syncGiftCards"
+                  [checked]="syncGiftCards()"
+                  (change)="syncGiftCards.set($any($event.target).checked)"
+                  class="w-5 h-5 accent-zinc-900 rounded cursor-pointer"
+                />
+                <label
+                  for="syncGiftCards"
+                  class="text-sm font-bold text-on-surface-variant cursor-pointer select-none"
+                  >Sync gift card content</label
+                >
+              </div>
+              <div class="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="syncDeliveryDates"
+                  [checked]="syncDeliveryDates()"
+                  (change)="syncDeliveryDates.set($any($event.target).checked)"
+                  class="w-5 h-5 accent-zinc-900 rounded cursor-pointer"
+                />
+                <label
+                  for="syncDeliveryDates"
+                  class="text-sm font-bold text-on-surface-variant cursor-pointer select-none"
+                  >Sync preferred delivery date</label
+                >
+              </div>
+            </div>
+          }
+
+          @for (unit of units(); track unit.key) {
+            <div
+              class="glass-card rounded-2xl p-6 md:p-8 border border-white/20 shadow-sm"
+            >
+              <div class="flex flex-col md:flex-row gap-6 md:gap-8">
+                <div
+                  class="flex flex-row md:flex-col gap-4 items-center md:items-start md:w-32 flex-shrink-0"
+                >
+                  <div
+                    class="w-20 h-20 md:w-32 md:h-32 rounded-xl overflow-hidden bg-surface-container-low flex-shrink-0"
+                  >
+                    <img
+                      [src]="unit.product.image"
+                      [alt]="unit.product.name"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div class="md:hidden">
+                    <h3
+                      class="text-base font-bold tracking-tight text-on-surface"
+                    >
+                      {{ unit.product.name }}
+                    </h3>
+                    <p
+                      class="text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5"
+                    >
+                      Unit {{ unit.unitIdx + 1 }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex-grow space-y-6">
+                  <div class="hidden md:block">
+                    <h3
+                      class="text-lg md:text-xl font-bold tracking-tight text-on-surface"
+                    >
+                      {{ unit.product.name }}
+                    </h3>
+                    <p
+                      class="text-[10px] md:text-xs text-on-surface-variant uppercase tracking-widest mt-1"
+                    >
+                      Unit {{ unit.unitIdx + 1 }} of {{ unit.product.name }}
+                    </p>
+                  </div>
+
+                  <div class="space-y-4">
+                    @if (deliveryOption() === 'delivery') {
+                      <div class="space-y-2">
+                        <label
+                          class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                          >Shipping Address</label
+                        >
+                        <input
+                          type="text"
+                          placeholder="Enter full delivery address"
+                          [value]="unitDetail(unit.key)?.address || ''"
+                          (input)="
+                            handleDetailChange(
+                              unit.key,
+                              'address',
+                              $any($event.target).value
+                            )
+                          "
+                          class="w-full bg-surface-container-low border border-black/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-zinc-900 transition-all"
+                        />
+                      </div>
+                      <div class="space-y-2">
+                        <label
+                          class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                          >Preferred Delivery Date</label
+                        >
+                        <input
+                          type="date"
+                          [min]="getTomorrow()"
+                          [value]="
+                            unitDetail(unit.key)?.preferredDeliveryDate ||
+                            getTomorrow()
+                          "
+                          (change)="
+                            handleDetailChange(
+                              unit.key,
+                              'preferredDeliveryDate',
+                              $any($event.target).value
+                            )
+                          "
+                          class="w-full bg-surface-container-low border border-black/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-zinc-900 transition-all"
+                        />
+                      </div>
+                    } @else {
+                      <div class="space-y-2">
+                        <label
+                          class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                          >Pickup Location</label
+                        >
+                        <input
+                          type="text"
+                          disabled
+                          [value]="SHOP_ADDRESS"
+                          class="w-full bg-zinc-50 border border-black/5 rounded-xl px-4 py-3 text-sm text-zinc-500 cursor-not-allowed"
+                        />
+                      </div>
+                    }
+
+                    <div class="space-y-3">
+                      <label
+                        class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                        >Gift Card Option</label
+                      >
+                      <div class="flex gap-6">
+                        <label
+                          class="flex items-center gap-2 cursor-pointer group"
+                        >
+                          <input
+                            type="radio"
+                            [name]="'gift_' + unit.key"
+                            [checked]="
+                              unitDetail(unit.key)?.hasGiftCard === false
+                            "
+                            (change)="
+                              handleDetailChange(unit.key, 'hasGiftCard', false)
+                            "
+                            class="w-4 h-4 accent-zinc-900"
+                          />
+                          <span
+                            class="text-sm text-on-surface-variant group-hover:text-on-surface transition-colors"
+                            >No Gift Card</span
+                          >
+                        </label>
+                        <label
+                          class="flex items-center gap-2 cursor-pointer group"
+                        >
+                          <input
+                            type="radio"
+                            [name]="'gift_' + unit.key"
+                            [checked]="
+                              unitDetail(unit.key)?.hasGiftCard === true
+                            "
+                            (change)="
+                              handleDetailChange(unit.key, 'hasGiftCard', true)
+                            "
+                            class="w-4 h-4 accent-zinc-900"
+                          />
+                          <span
+                            class="text-sm text-on-surface-variant group-hover:text-on-surface transition-colors"
+                            >Include Gift Card</span
+                          >
+                        </label>
+                      </div>
+                    </div>
+
+                    @if (unitDetail(unit.key)?.hasGiftCard) {
+                      <div class="space-y-2">
+                        <label
+                          class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                          >Gift Message</label
+                        >
+                        <textarea
+                          placeholder="Write your personal message here..."
+                          [value]="unitDetail(unit.key)?.giftMessage || ''"
+                          (input)="
+                            handleDetailChange(
+                              unit.key,
+                              'giftMessage',
+                              $any($event.target).value
+                            )
+                          "
+                          class="w-full bg-surface-container-low border border-black/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-zinc-900 transition-all min-h-[100px] resize-none"
+                        ></textarea>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="lg:col-span-4 lg:sticky lg:top-32 space-y-6">
+      <div class="lg:hidden">
+        <button
+          type="button"
+          (click)="toggleSummaryExpanded()"
+          class="w-full flex justify-between items-center p-6 glass-card rounded-2xl border border-zinc-200"
+        >
+          <h2 class="text-xl font-bold tracking-tighter">Order Summary</h2>
+          <lucide-icon
+            name="chevron-down"
+            [size]="20"
+            [class]="
+              'transition-transform duration-300 ' +
+              (isSummaryExpanded() ? 'rotate-180' : '')
+            "
+          />
+        </button>
+      </div>
+
+      @if (showSummaryBlock()) {
+        <div class="overflow-hidden">
+          <div
+            class="glass-card rounded-xl p-6 md:p-8 shadow-[0_60px_120px_rgba(0,0,0,0.05)] border border-white/40"
+          >
+            <h2
+              class="hidden lg:block text-2xl font-bold tracking-tighter mb-8"
+            >
+              Order Summary
+            </h2>
+            <div class="space-y-4 mb-8">
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-on-surface-variant font-medium">Subtotal</span>
+                <span class="font-bold tracking-tighter"
+                  >${{ subtotal().toFixed(2) }}</span
+                >
+              </div>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-on-surface-variant font-medium">{{
+                  deliveryOption() === 'pickup'
+                    ? 'Self Pickup'
+                    : 'Priority Courier'
+                }}</span>
+                <span class="font-bold tracking-tighter">{{
+                  shipping() === 0 ? 'FREE' : '$' + shipping().toFixed(2)
+                }}</span>
+              </div>
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-on-surface-variant font-medium"
+                  >Estimated Tax</span
+                >
+                <span class="font-bold tracking-tighter"
+                  >${{ tax().toFixed(2) }}</span
+                >
+              </div>
+            </div>
+            <div
+              class="pt-6 mb-10 border-t border-black/5 flex justify-between items-center"
+            >
+              <span class="text-lg font-bold tracking-tight">Total</span>
+              <div
+                class="text-2xl font-extrabold tracking-tighter text-on-surface"
+              >
+                ${{ total().toFixed(2) }}
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="placeOrder()"
+              [disabled]="placeOrderDisabled()"
+              class="w-full py-4 md:py-5 rounded-full bg-zinc-900 text-white font-bold text-[10px] md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] shadow-lg hover:bg-zinc-800 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {{ isSubmitting() ? 'Processing...' : 'Place Order' }}
+            </button>
+            <div class="mt-8 flex flex-col gap-4">
+              <div
+                class="flex items-center gap-3 text-[10px] uppercase tracking-widest text-on-surface-variant/70 font-bold"
+              >
+                <lucide-icon name="lock" [size]="14" />
+                Secure encrypted transaction
+              </div>
+              <div
+                class="flex items-center gap-3 text-[10px] uppercase tracking-widest text-on-surface-variant/70 font-bold"
+              >
+                <lucide-icon name="leaf" [size]="14" />
+                Sustainable packaging included
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

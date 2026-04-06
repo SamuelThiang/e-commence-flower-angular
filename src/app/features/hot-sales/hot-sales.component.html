@@ -1,0 +1,270 @@
+<div class="pt-32 pb-24 px-8 max-w-[1440px] mx-auto min-h-screen">
+  <div class="flex flex-col md:flex-row gap-8 md:gap-12">
+    <div
+      class="md:hidden flex items-center justify-between bg-surface-container-low p-4 rounded-2xl mb-4"
+    >
+      <button
+        type="button"
+        (click)="isFilterOpen.set(true)"
+        class="flex items-center gap-2"
+      >
+        <lucide-icon name="filter" [size]="18" class="text-zinc-500" />
+        <span class="text-sm font-bold uppercase tracking-widest">Filters</span>
+      </button>
+      <select
+        [value]="gridCols()"
+        (change)="gridCols.set(+$any($event.target).value)"
+        class="bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer p-0 text-xs uppercase font-bold tracking-widest"
+      >
+        <option [value]="1">1x1</option>
+        <option [value]="2">2x2</option>
+      </select>
+    </div>
+
+    <aside class="hidden md:block w-full md:w-64 shrink-0 space-y-12">
+      <div>
+        <h3 class="font-bold text-sm tracking-widest uppercase text-on-surface mb-6">
+          Search
+        </h3>
+        <div class="relative">
+          <input
+            type="text"
+            [value]="searchQuery()"
+            (input)="searchQuery.set($any($event.target).value)"
+            placeholder="Search hot specimens..."
+            class="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-xs text-on-surface focus:ring-1 focus:ring-zinc-900 transition-all"
+          />
+          @if (searchQuery()) {
+            <button
+              type="button"
+              (click)="searchQuery.set('')"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900"
+            >
+              <lucide-icon name="x" [size]="14" />
+            </button>
+          }
+        </div>
+      </div>
+      <div>
+        <h3 class="font-bold text-sm tracking-widest uppercase text-on-surface mb-6">
+          Price Palette
+        </h3>
+        <div class="px-2">
+          <input
+            type="range"
+            min="0"
+            max="500"
+            step="10"
+            [value]="maxPrice()"
+            (input)="maxPrice.set(+$any($event.target).value)"
+            class="w-full h-1 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-zinc-900"
+          />
+          <div
+            class="flex justify-between mt-4 text-[11px] font-medium text-on-surface-variant tracking-tighter"
+          >
+            <span>$0</span>
+            <span>Up to ${{ maxPrice() === 500 ? '500+' : maxPrice() }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 bg-primary-container rounded-xl">
+        <p class="text-xs leading-relaxed text-on-primary-container mb-4">
+          Our trending specimens are refreshed daily based on global botanical
+          demand.
+        </p>
+      </div>
+    </aside>
+
+    @if (isFilterOpen()) {
+      <div
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] md:hidden"
+        (click)="isFilterOpen.set(false)"
+        role="presentation"
+      ></div>
+      <div
+        class="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-white z-[70] p-8 overflow-y-auto md:hidden"
+      >
+        <div class="flex items-center justify-between mb-12">
+          <h2 class="text-2xl font-bold tracking-tighter">Filters</h2>
+          <button
+            type="button"
+            (click)="isFilterOpen.set(false)"
+            class="p-2 bg-surface-container-high rounded-full"
+          >
+            <lucide-icon name="x" [size]="20" />
+          </button>
+        </div>
+        <div class="space-y-12">
+          <div>
+            <h3
+              class="font-bold text-sm tracking-widest uppercase text-on-surface mb-6"
+            >
+              Search
+            </h3>
+            <input
+              type="text"
+              [value]="searchQuery()"
+              (input)="searchQuery.set($any($event.target).value)"
+              placeholder="Search hot specimens..."
+              class="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-xs text-on-surface focus:ring-1 focus:ring-zinc-900 transition-all"
+            />
+          </div>
+          <div>
+            <h3
+              class="font-bold text-sm tracking-widest uppercase text-on-surface mb-6"
+            >
+              Price Palette
+            </h3>
+            <input
+              type="range"
+              min="0"
+              max="500"
+              step="10"
+              [value]="maxPrice()"
+              (input)="maxPrice.set(+$any($event.target).value)"
+              class="w-full h-1 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-zinc-900"
+            />
+            <div
+              class="flex justify-between mt-4 text-[11px] font-medium text-on-surface-variant tracking-tighter"
+            >
+              <span>$0</span>
+              <span>Up to ${{ maxPrice() === 500 ? '500+' : maxPrice() }}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="isFilterOpen.set(false)"
+            class="w-full py-4 bg-zinc-900 text-white rounded-full font-bold uppercase tracking-widest text-xs mt-8"
+          >
+            Show Results
+          </button>
+        </div>
+      </div>
+    }
+
+    <section class="flex-1">
+      <header
+        class="mb-8 md:mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-6"
+      >
+        <div>
+          <h1
+            class="text-3xl md:text-4xl font-extrabold tracking-tighter text-on-surface"
+          >
+            Hot Sales
+          </h1>
+          <p class="text-on-surface-variant mt-2 max-w-md text-sm md:text-base">
+            Trending specimens with high architectural integrity.
+          </p>
+        </div>
+        <div
+          class="hidden md:flex items-center gap-4 text-xs font-medium uppercase tracking-widest text-zinc-400"
+        >
+          <span>Grid</span>
+          <select
+            [value]="gridCols()"
+            (change)="gridCols.set(+$any($event.target).value)"
+            class="bg-transparent border-none text-on-surface focus:ring-0 cursor-pointer p-0 pr-6 text-xs uppercase font-bold tracking-widest"
+          >
+            <option [value]="3">3x3</option>
+            <option [value]="4">4x4</option>
+            <option [value]="5">5x5</option>
+          </select>
+        </div>
+      </header>
+
+      <div
+        [class]="
+          'grid grid-cols-2 ' +
+          (gridCols() === 1 ? 'sm:grid-cols-1' : 'sm:grid-cols-2') +
+          ' md:grid-cols-2 ' +
+          (gridCols() === 3
+            ? 'lg:grid-cols-3'
+            : gridCols() === 4
+              ? 'lg:grid-cols-4'
+              : 'lg:grid-cols-5') +
+          ' gap-4 md:gap-8'
+        "
+      >
+        @for (product of hotProducts(); track product.id) {
+          <div
+            class="glass-card group p-4 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:shadow-[0_40px_80px_rgba(0,0,0,0.06)] transition-all duration-500 relative flex flex-col"
+          >
+            <a
+              [routerLink]="['/product', product.id]"
+              class="relative overflow-hidden rounded-lg aspect-[4/5] mb-6 cursor-pointer block"
+            >
+              <img
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                [src]="product.image"
+                [alt]="product.name"
+              />
+            </a>
+            <div class="flex justify-between items-start mb-4">
+              <div class="min-w-0 flex-1">
+                <h4
+                  [class]="
+                    'font-bold text-on-surface tracking-tight truncate ' +
+                    (gridCols() === 3
+                      ? 'text-sm md:text-lg'
+                      : gridCols() === 4
+                        ? 'text-xs md:text-base'
+                        : 'text-[10px] md:text-sm')
+                  "
+                >
+                  {{ product.name }}
+                </h4>
+                <p
+                  [class]="
+                    'text-on-surface-variant uppercase tracking-widest truncate ' +
+                    (gridCols() === 3
+                      ? 'text-[8px] md:text-xs'
+                      : gridCols() === 4
+                        ? 'text-[7px] md:text-[10px]'
+                        : 'text-[7px] md:text-[9px]')
+                  "
+                >
+                  {{ product.category }}
+                </p>
+              </div>
+              <span
+                [class]="
+                  'font-medium ml-2 shrink-0 ' +
+                  (gridCols() === 3
+                    ? 'text-xs md:text-lg'
+                    : gridCols() === 4
+                      ? 'text-[10px] md:text-base'
+                      : 'text-[10px] md:text-sm')
+                "
+                >${{ product.price }}</span
+              >
+            </div>
+            <button
+              type="button"
+              (click)="addToCart(product)"
+              [class]="
+                'w-full mt-auto bg-gradient-to-br from-zinc-200 to-zinc-100 text-zinc-900 font-bold uppercase rounded-full shadow-sm hover:opacity-90 transition-all flex items-center justify-center gap-1 md:gap-2 ' +
+                (gridCols() === 3
+                  ? 'py-2 md:py-4 text-[8px] md:text-[10px]'
+                  : gridCols() === 4
+                    ? 'py-1.5 md:py-3 text-[7px] md:text-[9px]'
+                    : 'py-1.5 md:py-2.5 text-[7px] md:text-[8px]') +
+                ' tracking-[0.1em] md:tracking-[0.2em]'
+              "
+            >
+              Add to Cart
+            </button>
+          </div>
+        }
+      </div>
+      @if (hotProducts().length === 0) {
+        <div
+          class="text-center py-24 glass-card rounded-[3rem] border border-zinc-100"
+        >
+          <p class="text-on-surface-variant font-medium italic">
+            No specimens found in this price range.
+          </p>
+        </div>
+      }
+    </section>
+  </div>
+</div>

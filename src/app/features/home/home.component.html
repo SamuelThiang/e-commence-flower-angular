@@ -1,0 +1,221 @@
+<div class="bg-surface">
+  <section class="relative h-[80vh] md:h-[90vh] w-full px-4 md:px-8 pt-20 md:pt-24">
+    <div class="relative w-full h-full overflow-hidden rounded-3xl md:rounded-[2.5rem]">
+      <img
+        class="w-full h-full object-cover"
+        src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5C_gg1XvNChhp8ZqKsMedToHGm32Wrv2N4mm0YQomyj4gDjF2_KeMTldKRZctj8z2gHL2dFetRzELTwJAa1j6J9ShBh2L-Nz5JSn2WD2r5knM2GmTUf80DXkzLNU0cAKhI2sqOIAm3ZHhEqB7idx_Mvm1BaDLIP2zVOAyceI0pWRjsF9MEB5IXUrmK76Dgz7vJBBzOJ4ys6LB_UtxPxqZhoGejK9LtILkoHh-2XlObNoTYNdeRiVBwwlfHyBF_HVVhKGPu2tIPxX5"
+        alt="Hero"
+      />
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div
+          class="glass-card p-8 md:p-16 rounded-[2rem] max-w-2xl text-center shadow-2xl"
+        >
+          <h1
+            class="text-3xl md:text-6xl font-bold tracking-tighter text-on-surface mb-4 md:mb-6 leading-tight"
+          >
+            Artistry in Every Bloom
+          </h1>
+          <p
+            class="text-sm md:text-xl text-on-surface-variant font-medium mb-6 md:mb-8"
+          >
+            Curating the world's most delicate specimens for the modern digital
+            gallery.
+          </p>
+          <a
+            routerLink="/shop"
+            class="inline-block bg-gradient-to-br from-primary-container to-surface-container-high px-6 md:px-8 py-3 md:py-4 rounded-full text-[10px] md:text-sm font-bold uppercase tracking-widest text-on-primary-container shadow-sm hover:opacity-90 transition-opacity"
+            >Explore Collection</a
+          >
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-24 px-4 md:px-8">
+    <div class="max-w-[1440px] mx-auto">
+      <h2 class="text-3xl font-bold tracking-tight mb-12">The Latest</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+        @for (product of products.slice(0, 4); track product.id) {
+          <a
+            [routerLink]="['/product', product.id]"
+            class="cursor-pointer group h-full block"
+          >
+            <div
+              class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 h-full flex flex-col"
+            >
+              <div class="aspect-[4/5] relative overflow-hidden shrink-0">
+                <img
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  [src]="product.image"
+                  [alt]="product.name"
+                />
+              </div>
+              <div
+                class="p-3 md:p-6 text-center flex flex-col flex-grow justify-center"
+              >
+                <h3
+                  class="text-[10px] md:text-sm font-bold text-zinc-900 mb-0.5 md:mb-1 line-clamp-1"
+                >
+                  {{ product.name }}
+                </h3>
+                <p class="text-xs md:text-lg font-bold text-zinc-900">
+                  ${{ product.price }}
+                </p>
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-24 px-4 md:px-8 max-w-[1440px] mx-auto">
+    <h2 class="text-2xl md:text-3xl font-bold tracking-tight mb-8 md:text-center">
+      Curated Selections
+    </h2>
+    <div
+      class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 h-auto md:h-[800px]"
+    >
+      <div
+        class="md:col-span-8 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[400px] md:min-h-0"
+      >
+        <img
+          class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMHsl6KlDq6Y7nLxNdgcF-Rad-_XRZMBhQbFWEJPbkBA7aaZic7ZhjPQUqQ3oWqO8bOu5rSwyae-9adT7WTv8mY44ybGNI9B2NwOgxmlnGcR4rzfRySRrqucBFwksqik3z5X4HdiQndLJS31gfdUm9uEjGLT35DRsowBewD9weG_hVmEqTuT2kQtqvIoJnGL72mVwQkftH80PWetSJRJJYKuE5c3EKciJ119VY8ge0zQNCQn-vdxEcvTry5RFIT_IedIrHdyGrrJo3"
+          alt="Sculptural Installs"
+        />
+        <div
+          class="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors"
+        ></div>
+        <div class="absolute bottom-8 left-8 md:bottom-12 md:left-12">
+          <h3 class="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4">
+            Sculptural Installs
+          </h3>
+          <p class="text-white/80 text-sm md:text-base max-w-sm mb-4 md:mb-6">
+            Bold botanical architecture for transformative living spaces.
+          </p>
+          <button
+            type="button"
+            class="bg-white/20 backdrop-blur-md text-white border border-white/30 px-6 py-3 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-on-surface transition-all"
+          >
+            Discover
+          </button>
+        </div>
+      </div>
+      <div
+        class="md:col-span-4 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[300px] md:min-h-0"
+      >
+        <img
+          class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-WsOT_QiFhWnsYCZqw8Kk_pvRcrZd7oCanhML7yUXS4G_nvgeuZC1ZSVRAzYIU4pDzjf-KuRQHtFVVGPcpw6T5tU4nQqOrBwkk_IdddRNnRKMme1B2TfRA1amEvzGr3rkMYksQV895Q9aeCQ69xLPeGnVQNNIyhBoDd4OJVnAa1dY5glcCZa9m3xZpyPaTDQDv5EMSaVNyaEoYmniUsulikrfUOhlM_hIN9Y2IsxER3FM1s4O9RHHWAuTocXs348i_uDcxvJLLjDn"
+          alt="Everlastings"
+        />
+        <div class="absolute inset-0 bg-black/20"></div>
+        <div class="absolute bottom-8 left-8">
+          <h3 class="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">
+            Everlastings
+          </h3>
+          <p class="text-white/80 text-xs md:text-sm mb-4">
+            Dried blooms that defy time.
+          </p>
+          <button
+            type="button"
+            class="text-white text-[10px] md:text-xs font-bold uppercase tracking-widest border-b border-white/50 pb-1"
+          >
+            Shop Now
+          </button>
+        </div>
+      </div>
+      <div
+        class="md:col-span-4 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[300px] md:min-h-0"
+      >
+        <img
+          class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyOuaD5e2srQIX3D-f-HsZQ_GbInNW_Zeb_lT8Uz6xbUdj3ZAE2W62lroZYq0Tq02oXeJ7k71yqPVxNgZ-MG4iX1QJRVYaUrLUKLrye00ykflde1h2aUTH1OPmcmklKZWeTPX1EW6TmdocmRMj00CnMm7uwMcKtbAG-fIPCTriznHSr2Q7RxtqdGYAmka2J4aMo8p0Jvx2541V07zcpyX65QleUqBR6guzRm0Qpk7aZAa4rvF_N8B9ykQgQdtBEEByCnUokJvTeK8l"
+          alt="The Verdant"
+        />
+        <div class="absolute inset-0 bg-black/20"></div>
+        <div class="absolute bottom-8 left-8">
+          <h3 class="text-xl md:text-2xl font-bold text-white mb-1 md:mb-2">
+            The Verdant
+          </h3>
+          <p class="text-white/80 text-xs md:text-sm mb-4">
+            Living breath for your sanctuary.
+          </p>
+        </div>
+      </div>
+      <div
+        class="md:col-span-8 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[300px] md:min-h-0"
+      >
+        <img
+          class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm3nKsZH_mBJSXl4BE4SFzW6RrR5GwA4SM-aEUNqQnzP6fxt0jGDbhXog-1dpzhp0FL9PcWb6V8DfMD9kC1UpyqXWTKH2EYd5H8-4J9F918k9XXjTVHcdzzxa7syRCUkcOUSS3wj_OB23OKoZBFLQw8dOgymlvrf8jMmeFB9R3MwgAuTeREcOUgSUJH1ueDrfnhfSvORsgHElRbdLsobT_s0mwlvJi9FCCQDTZpjhI_Xjm3e1-xNPX5LuDX9ena0VpSnuZoCkoBbjL"
+          alt="Seasonal Curations"
+        />
+        <div class="absolute inset-0 bg-black/20"></div>
+        <div class="absolute bottom-8 left-8 md:bottom-12 md:left-12">
+          <h3 class="text-2xl md:text-3xl font-bold text-white mb-2 md:mb-4">
+            Seasonal Curations
+          </h3>
+          <p class="text-white/80 text-sm md:text-base max-w-sm">
+            The best of nature's current rhythms.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section
+    class="mt-24 md:mt-40 mb-20 px-4 md:px-8 py-16 md:py-32 bg-surface-container-low rounded-3xl md:rounded-[3rem] max-w-[1300px] mx-auto text-center overflow-hidden relative"
+  >
+    <div class="relative z-10 max-w-3xl mx-auto">
+      <span
+        class="text-zinc-500 text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] mb-4 md:mb-8 block"
+        >Our Philosophy</span
+      >
+      <h2
+        class="text-2xl md:text-5xl font-bold tracking-tight text-on-surface mb-6 md:mb-10 leading-[1.1]"
+      >
+        The botanical world is our muse; the digital space is our canvas.
+      </h2>
+      <p
+        class="text-base md:text-xl text-on-surface-variant font-light leading-relaxed mb-8 md:mb-12"
+      >
+        We believe that flowers are more than decoration—they are specimens of
+        biological art. Each stem is hand-selected by our curators for its
+        unique architectural integrity and emotional resonance.
+      </p>
+      <div
+        class="grid grid-cols-3 gap-4 md:gap-12 text-on-surface font-semibold tracking-tighter"
+      >
+        <div class="flex flex-col">
+          <span class="text-xl md:text-3xl">100%</span>
+          <span
+            class="text-[8px] md:text-xs uppercase tracking-widest text-on-surface-variant"
+            >Sustainable</span
+          >
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xl md:text-3xl">0km</span>
+          <span
+            class="text-[8px] md:text-xs uppercase tracking-widest text-on-surface-variant"
+            >Local Roots</span
+          >
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xl md:text-3xl">Pure</span>
+          <span
+            class="text-[8px] md:text-xs uppercase tracking-widest text-on-surface-variant"
+            >Curated Art</span
+          >
+        </div>
+      </div>
+    </div>
+    <div
+      class="absolute top-0 right-0 w-48 h-48 md:w-96 md:h-96 bg-primary-container/30 rounded-full blur-[60px] md:blur-[100px] -mr-24 -mt-24 md:-mr-48 md:-mt-48"
+    ></div>
+    <div
+      class="absolute bottom-0 left-0 w-48 h-48 md:w-96 md:h-96 bg-zinc-200/30 rounded-full blur-[60px] md:blur-[100px] -ml-24 -mb-24 md:-ml-48 md:-mb-48"
+    ></div>
+  </section>
+</div>

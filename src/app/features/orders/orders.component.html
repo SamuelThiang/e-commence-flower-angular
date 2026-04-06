@@ -1,0 +1,229 @@
+@if (needsAuth()) {
+  <div
+    class="pt-32 pb-24 px-8 max-w-[1440px] mx-auto min-h-screen text-center"
+  >
+    <h1 class="text-2xl font-bold text-zinc-900 mb-4">Sign in required</h1>
+    <p class="text-on-surface-variant mb-8">
+      Please sign in to view your order history.
+    </p>
+    <a
+      routerLink="/login"
+      class="inline-block px-8 py-4 rounded-full bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest"
+      >Sign In</a
+    >
+  </div>
+} @else if (loading()) {
+  <div class="min-h-screen flex items-center justify-center pt-24">
+    <div class="flex flex-col items-center gap-4">
+      <div
+        class="w-12 h-12 border-4 border-zinc-900/10 border-t-zinc-900 rounded-full animate-spin"
+      ></div>
+      <p class="text-xs font-bold uppercase tracking-widest text-zinc-400">
+        Retrieving acquisitions...
+      </p>
+    </div>
+  </div>
+} @else {
+  <div
+    class="pt-24 md:pt-32 pb-12 md:pb-24 px-4 md:px-8 max-w-[1440px] mx-auto min-h-screen"
+  >
+    <div
+      class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12"
+    >
+      <div>
+        <h1
+          class="text-3xl md:text-4xl font-extrabold tracking-tighter text-on-surface mb-2"
+        >
+          Acquisition History
+        </h1>
+        <p class="text-on-surface-variant font-sans max-w-md text-sm md:text-base">
+          Review your past botanical acquisitions and track current specimens in
+          transit.
+        </p>
+      </div>
+      <div class="flex gap-4">
+        <div
+          class="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-white border border-on-surface/5 shadow-sm"
+        >
+          <p
+            class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1"
+          >
+            Total Orders
+          </p>
+          <p class="text-xl font-bold text-zinc-900">{{ orders().length }}</p>
+        </div>
+        <div
+          class="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-white border border-on-surface/5 shadow-sm"
+        >
+          <p
+            class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1"
+          >
+            Active Shipments
+          </p>
+          <p class="text-xl font-bold text-zinc-900">
+            {{ activeShipments() }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    @if (orders().length === 0) {
+      <div
+        class="py-24 md:py-32 text-center glass-card rounded-[2rem] md:rounded-[3rem] border border-zinc-100"
+      >
+        <lucide-icon
+          name="shopping-bag"
+          class="mx-auto text-zinc-200 mb-6"
+          [size]="64"
+          [strokeWidth]="1"
+        />
+        <h3 class="text-xl md:text-2xl font-bold text-zinc-900 mb-2">
+          No acquisitions yet
+        </h3>
+        <p class="text-sm md:text-base text-on-surface-variant mb-8">
+          Your botanical gallery is currently empty.
+        </p>
+        <a
+          routerLink="/shop"
+          class="inline-block px-8 py-4 rounded-full bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest"
+          >Explore Specimens</a
+        >
+      </div>
+    } @else {
+      <div class="space-y-6 md:space-y-8">
+        @for (order of orders(); track order.id) {
+          <div
+            class="group bg-white rounded-[1.5rem] md:rounded-[2rem] border border-on-surface/5 p-6 md:p-8 hover:shadow-xl hover:shadow-zinc-900/5 transition-all duration-500"
+          >
+            <div class="flex flex-col lg:flex-row gap-6 md:gap-8">
+              <div class="lg:w-1/3 space-y-4 md:space-y-6">
+                <div class="flex items-center justify-between">
+                  <span
+                    class="text-[10px] md:text-sm font-bold font-mono text-zinc-400"
+                    >{{ order.id }}</span
+                  >
+                  <div class="flex items-center gap-2">
+                    @if (order.deliveryOption) {
+                      <span
+                        class="px-3 py-1 rounded-full bg-zinc-100 text-zinc-600 text-[10px] font-bold uppercase tracking-wider"
+                        >{{
+                          order.deliveryOption === 'pickup'
+                            ? 'Pickup'
+                            : 'Delivery'
+                        }}</span
+                      >
+                    }
+                    <span
+                      [class]="
+                        'px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ' +
+                        (order.status === 'Delivered'
+                          ? 'bg-emerald-50 text-emerald-600'
+                          : order.status === 'In Transit'
+                            ? 'bg-blue-50 text-blue-600'
+                            : 'bg-amber-50 text-amber-600')
+                      "
+                      >{{ order.status }}</span
+                    >
+                  </div>
+                </div>
+                <div>
+                  <p class="text-xl md:text-2xl font-bold text-zinc-900">
+                    {{ formatOrderDate(order.date) }}
+                  </p>
+                  <p class="text-sm text-on-surface-variant mt-1">
+                    Total: ${{ order.total.toLocaleString() }}
+                  </p>
+                  @if (order.deliveryOption === 'pickup') {
+                    <p
+                      class="text-xs text-on-surface-variant mt-2 font-medium italic"
+                    >
+                      Self Pickup at Flagship Gallery
+                    </p>
+                  } @else {
+                    <p
+                      class="text-xs text-on-surface-variant mt-2 font-medium truncate"
+                    >
+                      Shipping to:
+                      {{ firstDeliveryAddress(order) }}
+                    </p>
+                  }
+                </div>
+                <button
+                  type="button"
+                  class="w-full py-4 rounded-2xl border border-zinc-900/10 text-sm font-bold hover:bg-zinc-900 hover:text-white transition-all duration-300"
+                >
+                  Download Invoice
+                </button>
+              </div>
+              <div class="lg:w-2/3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  @for (item of order.items; track $index) {
+                    <div
+                      class="flex items-center gap-4 p-4 rounded-2xl bg-surface/50 border border-on-surface/5"
+                    >
+                      <div
+                        class="w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden flex-shrink-0"
+                      >
+                        <img
+                          [src]="item.product.image"
+                          [alt]="item.product.name"
+                          class="w-full h-full object-cover"
+                          referrerpolicy="no-referrer"
+                        />
+                      </div>
+                      <div class="min-w-0">
+                        <p
+                          class="text-xs md:text-sm font-bold text-zinc-900 truncate"
+                        >
+                          {{ item.product.name }}
+                        </p>
+                        <p class="text-[10px] md:text-xs text-on-surface-variant">
+                          Qty: {{ item.quantity }}
+                        </p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <div
+      class="mt-12 md:mt-16 p-8 md:p-12 rounded-[2rem] md:rounded-[3rem] bg-zinc-900 text-white relative overflow-hidden"
+    >
+      <div class="relative z-10 max-w-lg text-center md:text-left">
+        <h2 class="text-2xl md:text-3xl font-bold tracking-tighter mb-4">
+          Need assistance with an order?
+        </h2>
+        <p class="text-zinc-400 mb-8 font-sans text-sm md:text-base">
+          Our botanical specialists are available to help with care guides,
+          delivery tracking, or specimen inquiries.
+        </p>
+        <button
+          type="button"
+          class="flex items-center justify-center md:justify-start gap-3 text-sm font-bold group w-full md:w-auto"
+        >
+          Contact Support
+          <lucide-icon
+            name="arrow-right"
+            [size]="18"
+            class="group-hover:translate-x-1 transition-transform"
+          />
+        </button>
+      </div>
+      <div
+        class="absolute top-0 right-0 w-1/2 h-full opacity-20 pointer-events-none hidden md:block"
+      >
+        <lucide-icon
+          name="sparkles"
+          class="absolute top-10 right-10 text-white"
+          [size]="120"
+          [strokeWidth]="0.5"
+        />
+      </div>
+    </div>
+  </div>
+}

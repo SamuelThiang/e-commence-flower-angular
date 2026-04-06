@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  --color-surface: #f8f8f8;
+  --color-on-surface: #1c1b1b;
+  --color-on-surface-variant: #444748;
+  --color-on-primary-container: #1c1b1b;
+  --color-primary-container: #f1f1f1;
+  --color-surface-container: #ebe7e7;
+  --color-surface-container-low: #f6f3f2;
+  --color-surface-container-high: #ebe7e7;
+  --color-surface-container-lowest: #ffffff;
+  --color-outline-variant: #c4c7c8;
+}
+
+@layer base {
+  /* Plain CSS avoids Tailwind "@apply" generating empty-& rules (build noise). */
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  @media (max-width: 1024px) {
+    body {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    body::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
