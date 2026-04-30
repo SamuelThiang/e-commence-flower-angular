@@ -23,7 +23,7 @@ export class ResultDialogComponent {
   readonly descriptionId = `${this.uid}-desc`;
 
   readonly open = input(false);
-  readonly variant = input<'success' | 'error'>('success');
+  readonly variant = input<'success' | 'error' | 'info'>('success');
   readonly heading = input.required<string>();
   readonly message = input.required<string>();
   readonly detailLine = input<string | null>(null);
