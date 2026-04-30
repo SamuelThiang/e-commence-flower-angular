@@ -29,7 +29,7 @@ import { environment } from '../../../environments/environment';
   selector: 'app-google-sign-in-button',
   standalone: true,
   template: `
-    <div class="relative w-full">
+    <div class="relative w-full" style='height: 63px;'>
       <div
         class="pointer-events-none relative z-0 flex w-full items-center justify-center gap-3 rounded-full border border-zinc-200 bg-white py-5 shadow-sm"
         aria-hidden="true"

@@ -51,5 +51,13 @@
   scrollbar-width: none;
 }
 
+/*
+ * Google Identity Services button shell (GIS injects this class). Scoped so only our widget is affected.
+ * Note: Google can rename these classes in a GIS update — if styling stops working, re-inspect the DOM.
+ */
+app-google-sign-in-button .nsm7Bb-HzV7m-LgbsSe {
+  height: 63px !important;
+}
+
 /* ngx-spinner Load Awesome — must load after Tailwind so `.la-*` + `@keyframes` apply */
 @import "../node_modules/ngx-spinner/animations/ball-spin-clockwise.css";
