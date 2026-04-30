@@ -34,12 +34,9 @@ export class CheckoutComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly addressApi = inject(AddressApiService);
-  private readonly orderApi = inject(OrderApiService);
+  private   readonly orderApi = inject(OrderApiService);
   readonly cartService = inject(CartService);
   private readonly resultDialog = inject(ResultDialogService);
-
-  /** One prompt per checkout visit (new component instance after login). */
-  private checkoutLoginPromptShown = false;
 
   readonly isProductsExpanded = signal(true);
   readonly isSummaryExpanded = signal(true);
@@ -75,26 +72,6 @@ export class CheckoutComponent {
       void this.router.navigate(['/cart']);
     }
     this.shippingDetails.set(this.buildInitialShippingDetails(this.cart()));
-
-    effect(() => {
-      if (!this.authService.isReady()) return;
-      if (this.authService.user()) return;
-      if (this.cart().length === 0) return;
-      if (this.checkoutLoginPromptShown) return;
-      this.checkoutLoginPromptShown = true;
-      queueMicrotask(() => {
-        this.resultDialog.showInfo({
-          title: 'Sign in to continue',
-          message:
-            'Please log in or create an account before checkout. Your cart will stay here when you come back.',
-          primaryLabel: 'OK',
-          onPrimary: () => {
-            this.authService.setPostAuthRedirect('/checkout');
-            void this.router.navigate(['/login']);
-          },
-        });
-      });
-    });
 
     effect((onCleanup) => {
       if (!this.authService.isReady() || !this.authService.user()) {
@@ -273,7 +250,6 @@ export class CheckoutComponent {
   placeOrder(): void {
     const user = this.authService.user();
     if (!user) {
-      this.authService.setPostAuthRedirect('/checkout');
       void this.router.navigate(['/login']);
       return;
     }

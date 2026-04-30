@@ -31,8 +31,6 @@ export type AuthActionResult =
   | { ok: false; target: AuthFieldTarget; message: string }
   | { ok: false; target: 'alert'; message: string };
 
-const POST_AUTH_RETURN_KEY = 'flower_post_auth_return';
-
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -132,36 +130,7 @@ export class AuthService {
     }
   }
 
-  /**
-   * After sign-in, navigate here (e.g. `/checkout`) instead of home/profile.
-   * Survives register → login; cleared when consumed.
-   */
-  setPostAuthRedirect(path: string): void {
-    if (!this.isSafeInternalPath(path)) return;
-    sessionStorage.setItem(POST_AUTH_RETURN_KEY, path);
-  }
-
-  private isSafeInternalPath(path: string): boolean {
-    return (
-      path.startsWith('/') &&
-      !path.startsWith('//') &&
-      !path.includes('://')
-    );
-  }
-
-  private consumePostAuthRedirect(): string | null {
-    const v = sessionStorage.getItem(POST_AUTH_RETURN_KEY);
-    sessionStorage.removeItem(POST_AUTH_RETURN_KEY);
-    if (v && this.isSafeInternalPath(v)) return v;
-    return null;
-  }
-
   private async navigateAfterLogin(user: AppUser): Promise<void> {
-    const ret = this.consumePostAuthRedirect();
-    if (ret) {
-      await this.router.navigateByUrl(ret);
-      return;
-    }
     if (!user.phone?.trim()) {
       await this.router.navigate(['/profile']);
     } else {
