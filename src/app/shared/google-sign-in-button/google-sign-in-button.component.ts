@@ -13,38 +13,17 @@ import {
 import { environment } from '../../../environments/environment';
 
 /**
- * Production-safe Google Sign-In:
- * - Decorative pill is `pointer-events-none` (purely visual).
- * - GIS button is mounted in a transparent overlay on top — REAL pointer events hit it.
- *   (Programmatic `.click()` on the GIS iframe is unreliable on HTTPS/FedCM.)
- * - We poll for `window.google.accounts.id` because in an SPA the `load` event has
- *   already fired by the time the user navigates to /login, so a one-shot `load`
- *   listener may never fire and GIS never mounts → "click does nothing".
+ * Renders Google's official GIS button directly. We previously used a transparent
+ * overlay over a custom pill so the design matched the site, but on production HTTPS
+ * that pattern is fragile (clicks landing on the transparent gap, FedCM peculiarities).
+ * Showing the real button is the most reliable approach and matches Google's guidance.
  */
 @Component({
   selector: 'app-google-sign-in-button',
   standalone: true,
   template: `
-    <div class="relative w-full">
-      <div
-        class="pointer-events-none relative z-0 flex w-full items-center justify-center gap-3 rounded-full border border-zinc-200 bg-white py-5 shadow-sm"
-        aria-hidden="true"
-      >
-        <img
-          src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-          alt=""
-          class="h-5 w-5 shrink-0"
-        />
-        <span class="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900">{{
-          labelText()
-        }}</span>
-      </div>
-      <div
-        #gisHost
-        class="absolute inset-0 z-10 flex cursor-pointer items-center justify-center overflow-hidden rounded-full opacity-0"
-        [attr.aria-label]="labelText()"
-        role="presentation"
-      ></div>
+    <div class="flex w-full justify-center">
+      <div #gisHost class="flex w-full justify-center"></div>
     </div>
   `,
 })
@@ -90,8 +69,7 @@ export class GoogleSignInButtonComponent implements AfterViewInit, OnDestroy {
 
     if (!clientId) {
       console.warn('[GoogleSignIn] environment.googleClientId is empty — button disabled.');
-      host.innerHTML =
-        '<span class="sr-only">Configure googleClientId</span>';
+      host.innerHTML = '<span class="sr-only">Configure googleClientId</span>';
       return;
     }
 
@@ -104,12 +82,15 @@ export class GoogleSignInButtonComponent implements AfterViewInit, OnDestroy {
         g.initialize({
           client_id: clientId,
           callback: (resp: { credential: string }) => {
+            console.info('[GoogleSignIn] credential received, length=', resp.credential?.length ?? 0);
             this.zone.run(() => this.signedIn.emit(resp.credential));
           },
+          auto_select: false,
+          ux_mode: 'popup',
         });
         host.innerHTML = '';
         const row = host.parentElement;
-        const w = Math.min((row?.offsetWidth ?? host.offsetWidth) || 384, 520);
+        const w = Math.min((row?.offsetWidth ?? host.offsetWidth) || 320, 400);
         g.renderButton(host, {
           type: 'standard',
           theme: 'outline',
@@ -117,6 +98,7 @@ export class GoogleSignInButtonComponent implements AfterViewInit, OnDestroy {
           width: w,
           shape: 'pill',
           text: this.variant() === 'signup' ? 'signup_with' : 'signin_with',
+          logo_alignment: 'left',
         });
         console.info('[GoogleSignIn] GIS button mounted.');
       } catch (err) {
@@ -138,7 +120,7 @@ export class GoogleSignInButtonComponent implements AfterViewInit, OnDestroy {
           '[GoogleSignIn] gsi/client never loaded after 20s. Check network tab / blockers / CSP.',
         );
         host.innerHTML =
-          '<p class="pointer-events-none px-2 text-center text-[11px] text-red-600">Google Sign-In script failed to load. Check network / ad blockers.</p>';
+          '<p class="px-2 text-center text-[11px] text-red-600">Google Sign-In script failed to load. Check network / ad blockers.</p>';
       }
     }, 20000);
   }
