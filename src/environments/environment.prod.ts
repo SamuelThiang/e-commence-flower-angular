@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://your-production-api.example.com/api',
+  apiBaseUrl: 'https://e-commence-flower-angular-production.up.railway.app/api',
 };

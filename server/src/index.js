@@ -24,24 +24,33 @@ import categoriesRoutes from './routes/categories.js';
 
 dotenv.config();
 
-
+/** Comma-separated list, e.g. `https://app.vercel.app,http://localhost:4200` */
+function allowedOrigins() {
+  const raw = process.env.FRONTEND_ORIGIN || 'http://localhost:4200';
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
 
 const app = express();
 
 const port = Number(process.env.PORT) || 3000;
 
-
-
 app.use(
-
   cors({
-
-    origin: process.env.FRONTEND_ORIGIN || 'http://localhost:4200',
-
+    origin(origin, cb) {
+      const allowed = allowedOrigins();
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      if (allowed.includes(origin)) {
+        cb(null, true);
+        return;
+      }
+      console.warn(`CORS rejected origin="${origin}" allow FRONTEND_ORIGIN=${JSON.stringify(allowed)}`);
+      cb(null, false);
+    },
     credentials: true,
-
   }),
-
 );
 
 app.use(express.json({ limit: '10mb' }));
