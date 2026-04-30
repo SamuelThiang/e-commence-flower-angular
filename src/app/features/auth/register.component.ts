@@ -7,11 +7,12 @@ import {
   isValidPassword,
   passwordValidationMessage,
 } from '../../core/password-validation';
+import { GoogleSignInButtonComponent } from '../../shared/google-sign-in-button/google-sign-in-button.component';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, GoogleSignInButtonComponent],
   templateUrl: './register.component.html',
 })
 export class RegisterComponent {
@@ -98,7 +99,13 @@ export class RegisterComponent {
     }
   }
 
-  google(): void {
-    void this.auth.googleLogin();
+  async onGoogleCredential(credential: string): Promise<void> {
+    const result = await this.auth.loginWithGoogleCredential(credential);
+    if (result.ok) return;
+    if (result.target === 'alert') {
+      alert(result.message);
+      return;
+    }
+    alert(result.message);
   }
 }

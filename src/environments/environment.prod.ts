@@ -7,4 +7,6 @@ export const environment = {
    * Railway container disk is ephemeral — point this at durable storage when you use uploads in production.
    */
   mediaBaseUrl: undefined as string | undefined,
+  /** Paste your Web client ID from Google Cloud Console (must match server GOOGLE_CLIENT_ID). */
+  googleClientId: '920596603488-78heh4ii7e6a1bhoqgkf4mt9fvs3hong.apps.googleusercontent.com',
 };

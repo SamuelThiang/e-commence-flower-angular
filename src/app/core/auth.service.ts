@@ -81,10 +81,27 @@ export class AuthService {
     this.userSignal.set(user);
   }
 
-  async googleLogin(): Promise<void> {
-    alert(
-      'Google sign-in is not enabled for this backend. Please use email and password.',
-    );
+  /** GIS credential JWT → `POST /api/auth/google`. */
+  async loginWithGoogleCredential(credential: string): Promise<AuthActionResult> {
+    try {
+      const res = await firstValueFrom(
+        this.http.post<{ token: string; user: AppUser }>(
+          `${this.apiUrl}/auth/google`,
+          { credential },
+        ),
+      );
+      this.persistSession(res.token, res.user);
+      try {
+        await this.injector.get(CartService).onLoginSuccess();
+      } catch (e) {
+        console.error(e);
+      }
+      await this.navigateAfterLogin(res.user);
+      return { ok: true };
+    } catch (e: unknown) {
+      console.error('Google sign-in error:', e);
+      return this.authHttpResult(e, 'Google sign-in failed.');
+    }
   }
 
   async loginEmail(email: string, pass: string): Promise<AuthActionResult> {

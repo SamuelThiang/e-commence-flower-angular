@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { pool } from '../db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { authErrorBody } from '../utils/apiError.js';
 
 const router = Router();
+
+function googleOAuthClient() {
+  const id = process.env.GOOGLE_CLIENT_ID?.trim();
+  if (!id) return null;
+  return new OAuth2Client(id);
+}
 
 function signToken(user) {
   const secret = process.env.JWT_SECRET;
@@ -119,6 +126,16 @@ router.post('/login', async (req, res) => {
         .json(authErrorBody('No account found for this email.', 'email'));
     }
     const row = result.rows[0];
+    if (!row.password_hash) {
+      return res
+        .status(401)
+        .json(
+          authErrorBody(
+            'This account uses Google sign-in. Use “Sign in with Google”.',
+            'password',
+          ),
+        );
+    }
     const ok = await bcrypt.compare(password, row.password_hash);
     if (!ok) {
       return res.status(401).json(authErrorBody('Incorrect password.', 'password'));
@@ -131,6 +148,127 @@ router.post('/login', async (req, res) => {
     return res
       .status(500)
       .json(authErrorBody('Login failed', undefined, { kind: 'system' }));
+  }
+});
+
+/**
+ * POST /api/auth/google — body `{ credential }` (GIS JWT). Creates user or logs in / links Google to existing email.
+ */
+router.post('/google', async (req, res) => {
+  const client = googleOAuthClient();
+  const credential = req.body?.credential;
+  if (!client || !process.env.GOOGLE_CLIENT_ID?.trim()) {
+    return res
+      .status(503)
+      .json(
+        authErrorBody(
+          'Google sign-in is not configured on the server.',
+          undefined,
+          { kind: 'system' },
+        ),
+      );
+  }
+  if (!credential || typeof credential !== 'string') {
+    return res
+      .status(400)
+      .json(authErrorBody('Missing Google credential.', undefined, { kind: 'system' }));
+  }
+
+  let payload;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch (e) {
+    console.error(e);
+    return res
+      .status(401)
+      .json(authErrorBody('Invalid or expired Google sign-in.', undefined, { kind: 'token' }));
+  }
+
+  if (!payload?.email || !payload.sub) {
+    return res
+      .status(400)
+      .json(authErrorBody('Google did not return an email.', undefined, { kind: 'system' }));
+  }
+  if (payload.email_verified !== true) {
+    return res
+      .status(403)
+      .json(authErrorBody('Google email is not verified.', undefined, { kind: 'system' }));
+  }
+
+  const emailNorm = payload.email.toLowerCase().trim();
+  const displayName = String(
+    payload.name ||
+      `${payload.given_name || ''} ${payload.family_name || ''}`.trim() ||
+      emailNorm.split('@')[0],
+  ).slice(0, 255);
+  const sub = payload.sub;
+
+  try {
+    const bySub = await pool.query(
+      `SELECT id, email, display_name, phone, role FROM users WHERE google_sub = $1`,
+      [sub],
+    );
+    if (bySub.rowCount > 0) {
+      const user = mapUserRow(bySub.rows[0]);
+      return res.json({ token: signToken(user), user });
+    }
+
+    const byEmail = await pool.query(
+      `SELECT id, email, password_hash, display_name, phone, role, google_sub FROM users WHERE email = $1`,
+      [emailNorm],
+    );
+    if (byEmail.rowCount > 0) {
+      const row = byEmail.rows[0];
+      if (row.google_sub && row.google_sub !== sub) {
+        return res
+          .status(409)
+          .json(
+            authErrorBody(
+              'This email is already linked to a different Google account.',
+              'email',
+            ),
+          );
+      }
+      if (!row.google_sub) {
+        await pool.query(`UPDATE users SET google_sub = $1 WHERE id = $2`, [sub, row.id]);
+      }
+      const refreshed = await pool.query(
+        `SELECT id, email, display_name, phone, role FROM users WHERE id = $1`,
+        [row.id],
+      );
+      const user = mapUserRow(refreshed.rows[0]);
+      return res.json({ token: signToken(user), user });
+    }
+
+    const ins = await pool.query(
+      `INSERT INTO users (email, password_hash, display_name, google_sub)
+       VALUES ($1, NULL, $2, $3)
+       RETURNING id, email, display_name, phone, role`,
+      [emailNorm, displayName, sub],
+    );
+    const user = mapUserRow(ins.rows[0]);
+    return res.status(201).json({ token: signToken(user), user });
+  } catch (e) {
+    if (e.code === '23505') {
+      return res
+        .status(409)
+        .json(authErrorBody('Account conflict for this Google user.', 'email'));
+    }
+    if (e.code === '42703') {
+      return res.status(500).json({
+        message:
+          'Database missing google_oauth columns — run: npm run db:migrate-004',
+        kind: 'system',
+      });
+    }
+    console.error(e);
+    return res
+      .status(500)
+      .json(authErrorBody('Google sign-in failed', undefined, { kind: 'system' }));
   }
 });
 
@@ -159,6 +297,11 @@ router.post('/admin-token', async (req, res) => {
         .json(authErrorBody('No account found for this email.', 'email'));
     }
     const row = result.rows[0];
+    if (!row.password_hash) {
+      return res
+        .status(401)
+        .json(authErrorBody('This account has no password set.', 'password'));
+    }
     const ok = await bcrypt.compare(password, row.password_hash);
     if (!ok) {
       return res.status(401).json(authErrorBody('Incorrect password.', 'password'));

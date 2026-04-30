@@ -2,11 +2,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { isValidEmail } from '../../core/email-validation';
+import { GoogleSignInButtonComponent } from '../../shared/google-sign-in-button/google-sign-in-button.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, GoogleSignInButtonComponent],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
@@ -61,7 +62,13 @@ export class LoginComponent {
     alert(result.message);
   }
 
-  google(): void {
-    void this.auth.googleLogin();
+  async onGoogleCredential(credential: string): Promise<void> {
+    const result = await this.auth.loginWithGoogleCredential(credential);
+    if (result.ok) return;
+    if (result.target === 'alert') {
+      alert(result.message);
+      return;
+    }
+    alert(result.message);
   }
 }

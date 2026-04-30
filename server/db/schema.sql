@@ -21,12 +21,17 @@ $$ LANGUAGE plpgsql;
 CREATE TABLE IF NOT EXISTS users (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   email         VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),
+  google_sub    VARCHAR(255),
   display_name  VARCHAR(255) NOT NULL DEFAULT '',
   phone         VARCHAR(64)  NOT NULL DEFAULT '',
   role          VARCHAR(32)  NOT NULL DEFAULT 'user',
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub
+  ON users (google_sub)
+  WHERE google_sub IS NOT NULL;
 
 -- ─────────────────────────────────────────────────────────────
 -- ADDRESSES

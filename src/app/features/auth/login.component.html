@@ -14,18 +14,12 @@
         </p>
       </div>
 
-      <button
-        type="button"
-        (click)="google()"
-        class="w-full py-5 rounded-full bg-white border border-zinc-200 text-zinc-900 font-bold text-xs uppercase tracking-[0.2em] shadow-sm hover:bg-zinc-50 active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3 mb-8"
-      >
-        <img
-          src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-          alt="Google"
-          class="w-5 h-5"
+      <div class="mb-8 w-full">
+        <app-google-sign-in-button
+          variant="signin"
+          (signedIn)="onGoogleCredential($event)"
         />
-        Sign In with Google
-      </button>
+      </div>
 
       <div class="relative mb-8">
         <div class="absolute inset-0 flex items-center">

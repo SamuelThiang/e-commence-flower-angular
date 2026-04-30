@@ -83,6 +83,12 @@ For CLI-based setup you can also run `npx neonctl@latest init` ([Neon CLI](https
    npm run db:migrate-003
    ```
 
+   **Google Sign-In** (`google_sub` on `users`, nullable `password_hash` for OAuth-only accounts):
+
+   ```bash
+   npm run db:migrate-004
+   ```
+
    Do **not** rely on `npm run db:init` to fix an existing database: `CREATE TABLE IF NOT EXISTS` leaves old tables unchanged. Use migrations or manual `ALTER TABLE` instead.
 
    After you copy existing JSON lines into `order_items`, drop the legacy column:
@@ -109,12 +115,26 @@ For CLI-based setup you can also run `npx neonctl@latest init` ([Neon CLI](https
 
 API base URL: `http://localhost:3000/api`
 
+### Google Sign-In (setup checklist)
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → select or create a project.
+2. **APIs & Services** → **OAuth consent screen** → User type **External** → add app name, support email, save. Add scopes `email`, `profile`, `openid` if prompted.
+3. **Credentials** → **Create credentials** → **OAuth client ID** → Application type **Web application**.
+4. **Authorized JavaScript origins**:  
+   `http://localhost:4200` and your production site `https://YOUR-APP.vercel.app` (no trailing slash).
+5. **Authorized redirect URIs**: not required for the GIS button flow (popup-less credential); you may leave empty or add `http://localhost:4200` if the console requires one.
+6. Copy the **Client ID** (`*.apps.googleusercontent.com`).
+7. **Railway** (API): set variable **`GOOGLE_CLIENT_ID`** = that client ID (same string everywhere).
+8. **Angular** `src/environments/environment.prod.ts` (and local `environment.ts` for dev): set **`googleClientId`** to the **same** client ID.
+9. Run **`npm run db:migrate-004`** on Neon (from `server/`) so `users.google_sub` exists and `password_hash` can be null for Google-only users.
+
 ## Endpoints (summary)
 
 | Method | Path | Auth |
 |--------|------|------|
 | POST | `/api/auth/register` | No |
 | POST | `/api/auth/login` | No |
+| POST | `/api/auth/google` | No — body `{ "credential" }` (Google Identity Services JWT); creates user or signs in |
 | POST | `/api/auth/admin-token` | No — body `{ "email", "password" }`; **admin only**; returns JWT for tools (e.g. image upload) |
 | GET | `/api/auth/me` | Bearer JWT |
 | PATCH | `/api/users/me` | Bearer |
@@ -154,7 +174,7 @@ curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./photo.jpg" https:
 
 ## Tables
 
-- **users** — accounts (bcrypt password, profile)
+- **users** — accounts (bcrypt password optional if Google-only; **`google_sub`** for OAuth link)
 - **addresses** — shipping addresses per user
 - **categories** — catalog categories (`slug`, `name`, `sort_order`, **`product_count`** maintained by DB triggers on `products`)
 - **products** — catalog (`category_id` → `categories`)
