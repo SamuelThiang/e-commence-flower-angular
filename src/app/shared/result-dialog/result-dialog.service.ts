@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 
 export interface ResultDialogPayload {
-  variant: 'success' | 'error';
+  variant: 'success' | 'error' | 'info';
   title: string;
   message: string;
   detailLine?: string | null;
@@ -22,6 +22,10 @@ export class ResultDialogService {
 
   showError(options: Omit<ResultDialogPayload, 'variant'>): void {
     this.stateSignal.set({ ...options, variant: 'error' });
+  }
+
+  showInfo(options: Omit<ResultDialogPayload, 'variant'>): void {
+    this.stateSignal.set({ ...options, variant: 'info' });
   }
 
   dismiss(): void {

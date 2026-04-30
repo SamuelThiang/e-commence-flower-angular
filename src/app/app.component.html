@@ -18,7 +18,9 @@
     [detailLine]="payload.detailLine ?? null"
     [primaryLabel]="
       payload.primaryLabel ??
-      (payload.variant === 'error' ? 'OK' : 'Done')
+      (payload.variant === 'error' || payload.variant === 'info'
+        ? 'OK'
+        : 'Done')
     "
     [useAlertRole]="payload.variant === 'error'"
     (primaryAction)="resultDialog.confirmPrimary()"
