@@ -1,8 +1,8 @@
 import express from 'express';
-
 import cors from 'cors';
-
 import dotenv from 'dotenv';
+
+import { ensureProductUploadDir, PRODUCT_UPLOAD_DIR } from './config/uploads.js';
 
 
 
@@ -31,8 +31,12 @@ function allowedOrigins() {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 
 const port = Number(process.env.PORT) || 3000;
+
+ensureProductUploadDir();
+app.use('/uploads/products', express.static(PRODUCT_UPLOAD_DIR));
 
 app.use(
   cors({

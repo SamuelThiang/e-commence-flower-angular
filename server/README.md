@@ -131,7 +131,26 @@ API base URL: `http://localhost:3000/api`
 | POST | `/api/cart/merge` | Bearer |
 | GET | `/api/products` | No |
 | GET | `/api/products/:id` | No |
+| POST | `/api/products/:id/image` | Admin (JWT **or** `X-Admin-Upload-Key` — see below) |
 | GET | `/api/categories` | No |
+
+### Product image upload (`POST /api/products/:id/image`)
+
+- **Body:** `multipart/form-data` with file field **`image`** (JPEG, PNG, WebP, or GIF; max 5 MB).
+- **Auth (either):**
+  - Bearer JWT for a user whose `users.role` is **`admin`** — promote with  
+    `UPDATE users SET role = 'admin' WHERE email = 'you@example.com';`
+  - Or set **`ADMIN_UPLOAD_KEY`** in `.env` / Railway and send header **`X-Admin-Upload-Key`** with the same value (no JWT).
+- **Response:** JSON product including updated **`image`** URL pointing at `/uploads/products/...`.
+- **`PUBLIC_API_BASE_URL`:** Set on production (e.g. `https://your-api.up.railway.app`, no trailing slash) so stored image URLs are correct. If omitted, the API derives `http(s)://host` from the incoming request (needs **`trust proxy`** on Railway — already enabled).
+
+Example (upload key):
+
+```bash
+curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./photo.jpg" https://YOUR_API/api/products/1/image
+```
+
+**Railway note:** The container filesystem is usually **ephemeral**; redeploys can delete uploaded files. For durable hosting use object storage (S3, Cloudinary, etc.) or attach a **Railway volume** and point uploads at that path.
 
 ## Tables
 

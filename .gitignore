@@ -44,3 +44,6 @@ Thumbs.db
 
 # Local API secrets
 server/.env
+
+# Uploaded product images (local / Railway without volume)
+server/uploads/
