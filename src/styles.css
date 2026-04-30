@@ -50,3 +50,6 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ngx-spinner Load Awesome — must load after Tailwind so `.la-*` + `@keyframes` apply */
+@import "../node_modules/ngx-spinner/animations/ball-spin-clockwise.css";

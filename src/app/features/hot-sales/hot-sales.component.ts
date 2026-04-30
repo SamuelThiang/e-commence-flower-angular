@@ -1,8 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { PRODUCTS, Product } from '../../shared/catalog';
+import type { Product } from '../../shared/catalog';
 import { CartService } from '../../core/cart.service';
+import { ProductService } from '../../core/product.service';
 
 @Component({
   selector: 'app-hot-sales',
@@ -12,13 +13,15 @@ import { CartService } from '../../core/cart.service';
 })
 export class HotSalesComponent {
   readonly cartService = inject(CartService);
+  private readonly productService = inject(ProductService);
+
   readonly maxPrice = signal(500);
   readonly searchQuery = signal('');
   readonly gridCols = signal(3);
   readonly isFilterOpen = signal(false);
 
   readonly hotProducts = computed(() =>
-    [...PRODUCTS]
+    [...this.productService.products()]
       .sort((a, b) => (b.orderCount || 0) - (a.orderCount || 0))
       .filter(
         (p) =>

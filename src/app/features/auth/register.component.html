@@ -1,3 +1,58 @@
+@if (showRegistrationSuccess()) {
+  <div
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-900/45 backdrop-blur-[2px]"
+    role="presentation"
+  >
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="registration-success-title"
+      class="w-full max-w-[320px] rounded-[14px] bg-[#f7f7f8] shadow-2xl overflow-hidden border border-zinc-200/80"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="px-8 pt-9 pb-7 text-center">
+        <div class="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-emerald-100/90">
+          <div
+            class="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-emerald-800 shadow-inner"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="h-7 w-7 text-white"
+              aria-hidden="true"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        </div>
+        <h2
+          id="registration-success-title"
+          class="text-[17px] font-bold tracking-tight text-zinc-800"
+        >
+          Registration Successful!
+        </h2>
+        <p class="mt-2.5 text-[13px] leading-relaxed text-zinc-500">
+          Welcome to the community! Your account is now active.
+        </p>
+      </div>
+      <div class="border-t border-zinc-200/90">
+        <button
+          type="button"
+          (click)="onRegistrationSuccessDone()"
+          class="w-full py-3.5 text-[15px] font-semibold text-indigo-600 hover:bg-zinc-100/90 active:bg-zinc-100 transition-colors"
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
 <div
   class="min-h-screen flex items-center justify-center px-4 md:px-8 pt-24 pb-12 bg-surface"
 >
@@ -47,9 +102,12 @@
               type="text"
               required
               [value]="firstName()"
-              (input)="firstName.set($any($event.target).value)"
+              (input)="firstName.set($any($event.target).value); clearSubmitError()"
               class="w-full bg-surface-container-high border-none rounded-2xl px-4 py-4 text-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all"
             />
+            @if (firstNameApiError(); as fnErr) {
+              <p class="ml-1 mt-1 text-[10px] text-red-600" role="alert">{{ fnErr }}</p>
+            }
           </div>
           <div class="space-y-2">
             <label
@@ -60,9 +118,12 @@
               type="text"
               required
               [value]="lastName()"
-              (input)="lastName.set($any($event.target).value)"
+              (input)="lastName.set($any($event.target).value); clearSubmitError()"
               class="w-full bg-surface-container-high border-none rounded-2xl px-4 py-4 text-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all"
             />
+            @if (lastNameApiError(); as lnErr) {
+              <p class="ml-1 mt-1 text-[10px] text-red-600" role="alert">{{ lnErr }}</p>
+            }
           </div>
         </div>
         <div class="space-y-2">
@@ -74,22 +135,83 @@
             type="email"
             required
             [value]="email()"
-            (input)="email.set($any($event.target).value)"
+            (input)="email.set($any($event.target).value); clearSubmitError()"
             class="w-full bg-surface-container-high border-none rounded-2xl px-6 py-4 text-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all"
           />
+          @if (showEmailError()) {
+            <p class="ml-1 mt-1 text-[10px] text-red-600">Please enter a valid email address.</p>
+          }
+          @if (emailApiError(); as emailErr) {
+            <p class="ml-1 mt-1 text-[10px] text-red-600" role="alert">{{ emailErr }}</p>
+          }
         </div>
         <div class="space-y-2">
           <label
             class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 ml-1"
             >Password</label
           >
-          <input
-            type="password"
-            required
-            [value]="password()"
-            (input)="password.set($any($event.target).value)"
-            class="w-full bg-surface-container-high border-none rounded-2xl px-6 py-4 text-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all"
-          />
+          <div class="relative">
+            <input
+              [attr.type]="showPassword() ? 'text' : 'password'"
+              required
+              [value]="password()"
+              (input)="password.set($any($event.target).value); clearSubmitError()"
+              class="w-full bg-surface-container-high border-none rounded-2xl pl-6 pr-14 py-4 text-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              (click)="togglePasswordVisibility()"
+              class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              [attr.aria-pressed]="showPassword()"
+            >
+              @if (showPassword()) {
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-5 h-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                  />
+                </svg>
+              } @else {
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-5 h-5"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              }
+            </button>
+          </div>
+          @if (passwordApiError(); as apiPwd) {
+            <p class="ml-1 mt-1 text-[10px] text-red-600" role="alert">{{ apiPwd }}</p>
+          }
+          @if (!passwordApiError() && passwordErrorMessage(); as pwdMsg) {
+            <p class="ml-1 mt-1 text-[10px] text-red-600">{{ pwdMsg }}</p>
+          }
         </div>
 
         <button

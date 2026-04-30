@@ -1,30 +1,17 @@
 import {
   Component,
-  DestroyRef,
   HostListener,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import {
-  collection,
-  doc,
-  increment,
-  onSnapshot,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '../../core/firebase';
+import { AuthService } from '../../core/auth.service';
+import { AddressApiService } from '../../core/address-api.service';
+import { OrderApiService } from '../../core/order-api.service';
 import { CartService } from '../../core/cart.service';
-import {
-  handleFirestoreError,
-  OperationType,
-} from '../../core/firestore-errors';
 import type { CartLine } from '../../shared/catalog';
 
 type UnitDetail = {
@@ -41,8 +28,10 @@ type UnitDetail = {
   templateUrl: './checkout.component.html',
 })
 export class CheckoutComponent {
-  private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly addressApi = inject(AddressApiService);
+  private readonly orderApi = inject(OrderApiService);
   readonly cartService = inject(CartService);
 
   readonly isProductsExpanded = signal(true);
@@ -80,21 +69,13 @@ export class CheckoutComponent {
     }
     this.shippingDetails.set(this.buildInitialShippingDetails(this.cart()));
 
-    let addressUnsub: (() => void) | null = null;
-    const authUnsub = onAuthStateChanged(auth, (user) => {
-      addressUnsub?.();
-      addressUnsub = null;
-      if (!user) return;
-      const q = query(
-        collection(db, 'addresses'),
-        where('uid', '==', user.uid),
-        where('isDefault', '==', true),
-      );
-      addressUnsub = onSnapshot(
-        q,
-        (snapshot) => {
-          if (snapshot.empty) return;
-          const addr = snapshot.docs[0].data() as { address: string };
+    effect((onCleanup) => {
+      if (!this.authService.isReady() || !this.authService.user()) {
+        return;
+      }
+      const sub = this.addressApi.getDefault().subscribe({
+        next: (addr) => {
+          if (!addr?.address) return;
           this.shippingDetails.update((prev) => {
             const next = { ...prev };
             for (const u of this.units()) {
@@ -112,13 +93,9 @@ export class CheckoutComponent {
             return next;
           });
         },
-        (err) =>
-          handleFirestoreError(err, OperationType.LIST, 'addresses'),
-      );
-    });
-    this.destroyRef.onDestroy(() => {
-      authUnsub();
-      addressUnsub?.();
+        error: (err) => console.error(err),
+      });
+      onCleanup(() => sub.unsubscribe());
     });
   }
 
@@ -240,9 +217,10 @@ export class CheckoutComponent {
     this.isSummaryExpanded.update((v) => !v);
   }
 
-  async placeOrder(): Promise<void> {
-    if (!auth.currentUser) {
-      await this.router.navigate(['/login']);
+  placeOrder(): void {
+    const user = this.authService.user();
+    if (!user) {
+      void this.router.navigate(['/login']);
       return;
     }
     const cart = this.cart();
@@ -255,68 +233,57 @@ export class CheckoutComponent {
     }
 
     this.isSubmitting.set(true);
-    try {
-      const orderItems = cart.map((item, itemIdx) => {
-        const itemShippingDetails = Array.from(
-          { length: item.quantity },
-          (_, unitIdx) => {
-            const detail = this.shippingDetails()[`${itemIdx}_${unitIdx}`];
-            return {
-              address:
-                this.deliveryOption() === 'pickup'
-                  ? this.SHOP_ADDRESS
-                  : detail?.address || '',
-              hasGiftCard: detail?.hasGiftCard || false,
-              giftMessage: detail?.giftMessage || '',
-              preferredDeliveryDate:
-                this.deliveryOption() === 'pickup'
-                  ? new Date().toISOString().split('T')[0]
-                  : detail?.preferredDeliveryDate || this.getTomorrow(),
-            };
-          },
-        );
-        return {
-          product: item.product,
-          quantity: item.quantity,
-          shippingDetails: itemShippingDetails,
-        };
-      });
-
-      const total = this.total();
-      const newOrder = {
-        id: `ORD-${Date.now()}`,
-        date: new Date().toISOString(),
-        status: 'Processing' as const,
-        items: orderItems,
-        total,
-        uid: auth.currentUser.uid,
-        preferredDeliveryDate:
-          this.deliveryOption() === 'pickup'
-            ? new Date().toISOString().split('T')[0]
-            : this.shippingDetails()[us[0]?.key]?.preferredDeliveryDate ||
-              this.getTomorrow(),
-        deliveryOption: this.deliveryOption(),
+    const orderItems = cart.map((item, itemIdx) => {
+      const itemShippingDetails = Array.from(
+        { length: item.quantity },
+        (_, unitIdx) => {
+          const detail = this.shippingDetails()[`${itemIdx}_${unitIdx}`];
+          return {
+            address:
+              this.deliveryOption() === 'pickup'
+                ? this.SHOP_ADDRESS
+                : detail?.address || '',
+            hasGiftCard: detail?.hasGiftCard || false,
+            giftMessage: detail?.giftMessage || '',
+            preferredDeliveryDate:
+              this.deliveryOption() === 'pickup'
+                ? new Date().toISOString().split('T')[0]
+                : detail?.preferredDeliveryDate || this.getTomorrow(),
+          };
+        },
+      );
+      return {
+        product: item.product,
+        quantity: item.quantity,
+        shippingDetails: itemShippingDetails,
       };
+    });
 
-      await setDoc(doc(db, 'orders', newOrder.id), newOrder);
+    const total = this.total();
+    const newOrder = {
+      id: `ORD-${Date.now()}`,
+      date: new Date().toISOString(),
+      status: 'Processing' as const,
+      items: orderItems,
+      total,
+      preferredDeliveryDate:
+        this.deliveryOption() === 'pickup'
+          ? new Date().toISOString().split('T')[0]
+          : this.shippingDetails()[us[0]?.key]?.preferredDeliveryDate ||
+            this.getTomorrow(),
+      deliveryOption: this.deliveryOption(),
+    };
 
-      for (const item of cart) {
-        const productRef = doc(db, 'products', item.product.id);
-        try {
-          await updateDoc(productRef, {
-            orderCount: increment(item.quantity),
-          });
-        } catch (e) {
-          console.warn(`Could not update orderCount for product ${item.product.id}:`, e);
-        }
-      }
-
-      this.cartService.clear();
-      await this.router.navigate(['/orders']);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'orders');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.orderApi.create(newOrder).subscribe({
+      next: () => {
+        this.cartService.clear();
+        void this.router.navigate(['/orders']);
+      },
+      error: (err) => {
+        console.error(err);
+        alert('Could not place order. Please try again.');
+      },
+      complete: () => this.isSubmitting.set(false),
+    });
   }
 }

@@ -1,20 +1,9 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
-import {
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
-import { auth, db } from '../../core/firebase';
+import { Component, effect, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
-import {
-  handleFirestoreError,
-  OperationType,
-} from '../../core/firestore-errors';
+import { AddressApiService } from '../../core/address-api.service';
 import type { UserAddress } from '../../shared/catalog';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-profile',
@@ -22,8 +11,9 @@ import type { UserAddress } from '../../shared/catalog';
   templateUrl: './profile.component.html',
 })
 export class ProfileComponent {
-  private readonly destroyRef = inject(DestroyRef);
   readonly authService = inject(AuthService);
+  private readonly addressApi = inject(AddressApiService);
+  private readonly http = inject(HttpClient);
 
   readonly addresses = signal<UserAddress[]>([]);
   readonly newAddress = signal({ address: '', label: '' });
@@ -32,33 +22,26 @@ export class ProfileComponent {
   readonly isUpdatingPhone = signal(false);
 
   constructor() {
-    const user = auth.currentUser;
-    if (user) {
-      const q = query(
-        collection(db, 'addresses'),
-        where('uid', '==', user.uid),
-      );
-      const unsubA = onSnapshot(
-        q,
-        (snapshot) => {
-          const addrs = snapshot.docs.map(
-            (d) => ({ id: d.id, ...d.data() } as UserAddress),
-          );
-          this.addresses.set(addrs);
+    effect(() => {
+      const u = this.authService.user();
+      if (u) {
+        this.phone.set(u.phone || '');
+      }
+    });
+
+    effect((onCleanup) => {
+      if (!this.authService.isReady() || !this.authService.user()) {
+        return;
+      }
+      const sub = this.addressApi.list().subscribe({
+        next: (list) => this.addresses.set(list),
+        error: (err) => {
+          console.error(err);
+          alert('Could not load addresses.');
         },
-        (err) =>
-          handleFirestoreError(err, OperationType.LIST, 'addresses'),
-      );
-      const unsubU = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
-        if (snapshot.exists()) {
-          this.phone.set(snapshot.data()['phone'] || '');
-        }
       });
-      this.destroyRef.onDestroy(() => {
-        unsubA();
-        unsubU();
-      });
-    }
+      onCleanup(() => sub.unsubscribe());
+    });
   }
 
   toggleAdding(): void {
@@ -73,56 +56,53 @@ export class ProfileComponent {
     this.newAddress.update((a) => ({ ...a, address: value }));
   }
 
-  async submitAddress(ev: Event): Promise<void> {
+  submitAddress(ev: Event): void {
     ev.preventDefault();
-    const user = auth.currentUser;
+    const u = this.authService.user();
     const na = this.newAddress();
-    if (!user || !na.address || !na.label) return;
-    try {
-      const id = `ADDR-${Date.now()}`;
-      const isFirst = this.addresses().length === 0;
-      await setDoc(doc(db, 'addresses', id), {
-        ...na,
-        uid: user.uid,
-        isDefault: isFirst,
-        id,
-      });
-      this.newAddress.set({ address: '', label: '' });
-      this.isAdding.set(false);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'addresses');
-    }
+    if (!u || !na.address || !na.label) return;
+    const id = `ADDR-${Date.now()}`;
+    this.addressApi.create({ id, address: na.address, label: na.label }).subscribe({
+      next: (created) => {
+        this.addresses.update((prev) => [...prev, created]);
+        this.newAddress.set({ address: '', label: '' });
+        this.isAdding.set(false);
+      },
+      error: (err) => {
+        console.error(err);
+        alert('Could not save address.');
+      },
+    });
   }
 
-  async toggleDefault(id: string): Promise<void> {
-    if (!auth.currentUser) return;
-    try {
-      const updates = this.addresses().map((addr) =>
-        setDoc(
-          doc(db, 'addresses', addr.id),
-          { ...addr, isDefault: addr.id === id },
-          { merge: true },
-        ),
-      );
-      await Promise.all(updates);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'addresses');
-    }
+  toggleDefault(id: string): void {
+    this.addressApi.setDefault(id).subscribe({
+      next: (list) => this.addresses.set(list),
+      error: (err) => {
+        console.error(err);
+        alert('Could not update default address.');
+      },
+    });
   }
 
-  async updatePhone(ev: Event): Promise<void> {
+  updatePhone(ev: Event): void {
     ev.preventDefault();
-    const user = auth.currentUser;
+    const u = this.authService.user();
     const p = this.phone();
-    if (!user || !p) return;
+    if (!u || !p) return;
     this.isUpdatingPhone.set(true);
-    try {
-      await updateDoc(doc(db, 'users', user.uid), { phone: p });
-      alert('Phone number updated successfully.');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, 'users');
-    } finally {
-      this.isUpdatingPhone.set(false);
-    }
+    this.http
+      .patch<unknown>(`${environment.apiBaseUrl}/users/me`, { phone: p })
+      .subscribe({
+        next: () => {
+          void this.authService.refreshUser();
+          alert('Phone number updated successfully.');
+        },
+        error: (err) => {
+          console.error(err);
+          alert('Could not update phone.');
+        },
+        complete: () => this.isUpdatingPhone.set(false),
+      });
   }
 }

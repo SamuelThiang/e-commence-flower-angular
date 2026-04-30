@@ -35,7 +35,7 @@
     <div class="max-w-[1440px] mx-auto">
       <h2 class="text-3xl font-bold tracking-tight mb-12">The Latest</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-        @for (product of products.slice(0, 4); track product.id) {
+        @for (product of products(); track product.id) {
           <a
             [routerLink]="['/product', product.id]"
             class="cursor-pointer group h-full block"

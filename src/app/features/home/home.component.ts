@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { PRODUCTS } from '../../shared/catalog';
+import { ProductService } from '../../core/product.service';
 
 @Component({
   selector: 'app-home',
@@ -9,5 +9,7 @@ import { PRODUCTS } from '../../shared/catalog';
   templateUrl: './home.component.html',
 })
 export class HomeComponent {
-  readonly products = PRODUCTS;
+  private readonly productService = inject(ProductService);
+
+  readonly products = computed(() => this.productService.products().slice(0, 4));
 }

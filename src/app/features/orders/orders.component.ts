@@ -1,18 +1,8 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from 'firebase/firestore';
-import { auth, db } from '../../core/firebase';
-import {
-  handleFirestoreError,
-  OperationType,
-} from '../../core/firestore-errors';
+import { AuthService } from '../../core/auth.service';
+import { OrderApiService } from '../../core/order-api.service';
 import type { Order } from '../../shared/catalog';
 
 @Component({
@@ -22,41 +12,45 @@ import type { Order } from '../../shared/catalog';
   templateUrl: './orders.component.html',
 })
 export class OrdersComponent {
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
+  private readonly orderApi = inject(OrderApiService);
 
   readonly orders = signal<Order[]>([]);
   readonly loading = signal(true);
-  readonly needsAuth = signal(!auth.currentUser);
+  readonly needsAuth = signal(true);
 
   readonly activeShipments = computed(
     () => this.orders().filter((o) => o.status === 'In Transit').length,
   );
 
   constructor() {
-    const user = auth.currentUser;
-    if (!user) {
-      this.loading.set(false);
-      return;
-    }
-    const q = query(
-      collection(db, 'orders'),
-      where('uid', '==', user.uid),
-      orderBy('date', 'desc'),
-    );
-    const unsub = onSnapshot(
-      q,
-      (snapshot) => {
-        const data = snapshot.docs.map(
-          (d) => ({ ...d.data(), id: d.id }) as Order,
-        );
-        this.orders.set(data);
+    effect(() => {
+      this.needsAuth.set(!this.authService.user());
+    });
+
+    effect((onCleanup) => {
+      if (!this.authService.isReady()) {
+        return;
+      }
+      if (!this.authService.user()) {
         this.loading.set(false);
-      },
-      (err) => {
-        handleFirestoreError(err, OperationType.GET, 'orders');
-      },
-    );
-    this.destroyRef.onDestroy(() => unsub());
+        this.orders.set([]);
+        return;
+      }
+      this.loading.set(true);
+      const sub = this.orderApi.list().subscribe({
+        next: (data) => {
+          this.orders.set(data);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          console.error(err);
+          this.loading.set(false);
+          alert('Could not load orders.');
+        },
+      });
+      onCleanup(() => sub.unsubscribe());
+    });
   }
 
   formatOrderDate(dateStr: string): string {

@@ -1,8 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { PRODUCTS, Product } from '../../shared/catalog';
+import type { Product } from '../../shared/catalog';
 import { CartService } from '../../core/cart.service';
+import { ProductService } from '../../core/product.service';
 
 @Component({
   selector: 'app-shop',
@@ -12,6 +13,7 @@ import { CartService } from '../../core/cart.service';
 })
 export class ShopComponent {
   readonly cartService = inject(CartService);
+  private readonly productService = inject(ProductService);
 
   readonly price = signal(500);
   readonly selectedCategory = signal<string | null>(null);
@@ -29,14 +31,13 @@ export class ShopComponent {
     'Valentines-day-special',
   ];
 
-  readonly products = PRODUCTS;
-
   readonly filteredProducts = computed(() => {
+    const catalog = this.productService.products();
     const q = this.searchQuery().toLowerCase();
     const cat = this.selectedCategory();
     const maxPrice = this.price();
     const sort = this.sortBy();
-    let list = PRODUCTS.filter((product) => {
+    let list = catalog.filter((product) => {
       const matchesPrice = product.price <= maxPrice;
       const matchesCategory = cat ? product.category === cat : true;
       const matchesSearch =
@@ -63,6 +64,11 @@ export class ShopComponent {
   }
 
   countInCategory(cat: string): number {
-    return PRODUCTS.filter((p) => p.category === cat).length;
+    return this.productService.products().filter((p) => p.category === cat).length;
   }
+
+  readonly catalogSize = computed(
+    () => this.productService.products().length,
+  );
 }
+
