@@ -2,13 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import type { Order } from '../shared/catalog';
+import type { Order, OrderSubmitLine } from '../shared/catalog';
 
 export interface CreateOrderPayload {
   id: string;
   date: string;
   status: Order['status'];
-  items: Order['items'];
+  items: OrderSubmitLine[];
   total: number;
   preferredDeliveryDate?: string;
   deliveryOption?: 'delivery' | 'pickup';

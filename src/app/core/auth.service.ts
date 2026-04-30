@@ -1,9 +1,10 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, Injector } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TOKEN_KEY } from './auth.interceptor';
+import { CartService } from './cart.service';
 
 export interface AppUser {
   id: string;
@@ -34,6 +35,7 @@ export type AuthActionResult =
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
   private readonly apiUrl = environment.apiBaseUrl;
 
   private readonly userSignal = signal<AppUser | null>(null);
@@ -62,6 +64,13 @@ export class AuthService {
       this.userSignal.set(null);
     } finally {
       this.readySignal.set(true);
+      if (this.userSignal()) {
+        try {
+          await this.injector.get(CartService).hydrateFromServer();
+        } catch {
+          /* cart API optional */
+        }
+      }
     }
   }
 
@@ -85,6 +94,11 @@ export class AuthService {
         ),
       );
       this.persistSession(res.token, res.user);
+      try {
+        await this.injector.get(CartService).onLoginSuccess();
+      } catch (e) {
+        console.error(e);
+      }
       await this.navigateAfterLogin(res.user);
       return { ok: true };
     } catch (e: unknown) {
@@ -192,7 +206,7 @@ export class AuthService {
   async logout(): Promise<void> {
     localStorage.removeItem(TOKEN_KEY);
     this.userSignal.set(null);
-    await this.router.navigate(['/home']);
+    await this.router.navigate(['/login']);
   }
 
   /** Refresh user from server (e.g. after profile phone update). */

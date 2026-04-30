@@ -14,6 +14,8 @@ import addressesRoutes from './routes/addresses.js';
 
 import ordersRoutes from './routes/orders.js';
 
+import cartRoutes from './routes/cart.js';
+
 import productsRoutes from './routes/products.js';
 
 import categoriesRoutes from './routes/categories.js';
@@ -61,6 +63,8 @@ app.use('/api/users', usersRoutes);
 app.use('/api/addresses', addressesRoutes);
 
 app.use('/api/orders', ordersRoutes);
+
+app.use('/api/cart', cartRoutes);
 
 app.use('/api/products', productsRoutes);
 

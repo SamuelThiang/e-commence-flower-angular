@@ -10,7 +10,11 @@
     "db:init": "node scripts/run-sql.js db/schema.sql",
     "db:migrate-categories": "node scripts/migrate-categories.js",
     "db:patch-product-count": "node scripts/run-sql.js db/category_product_count.sql",
-    "db:shop-hours": "node scripts/run-sql.js db/shop_hours.sql"
+    "db:shop-hours": "node scripts/run-sql.js db/shop_hours.sql",
+    "db:migrate-001": "node scripts/run-sql.js db/migration_001_order_items_payments_inventory_cart.sql",
+    "db:migrate-002": "node scripts/run-sql.js db/migration_002_cart_order_line_shipping.sql",
+    "db:migrate-003": "node scripts/run-sql.js db/migration_003_orders_items_column.sql",
+    "db:verify": "node scripts/verify-db.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

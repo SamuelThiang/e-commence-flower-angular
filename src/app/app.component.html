@@ -9,4 +9,20 @@
   <p style="color: white">Loading...</p>
 </ngx-spinner>
 
+@if (resultDialog.state(); as payload) {
+  <app-result-dialog
+    [open]="true"
+    [variant]="payload.variant"
+    [heading]="payload.title"
+    [message]="payload.message"
+    [detailLine]="payload.detailLine ?? null"
+    [primaryLabel]="
+      payload.primaryLabel ??
+      (payload.variant === 'error' ? 'OK' : 'Done')
+    "
+    [useAlertRole]="payload.variant === 'error'"
+    (primaryAction)="resultDialog.confirmPrimary()"
+  />
+}
+
 <router-outlet />

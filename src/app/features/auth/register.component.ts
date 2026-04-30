@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
+import { ResultDialogService } from '../../shared/result-dialog/result-dialog.service';
 import { isValidEmail } from '../../core/email-validation';
 import {
   isValidPassword,
@@ -16,9 +17,8 @@ import {
 export class RegisterComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly resultDialog = inject(ResultDialogService);
 
-  /** Success modal after account is created (navigate on Done). */
-  readonly showRegistrationSuccess = signal(false);
   readonly email = signal('');
   readonly password = signal('');
   readonly firstName = signal('');
@@ -68,7 +68,14 @@ export class RegisterComponent {
       this.lastName(),
     );
     if (result.ok) {
-      this.showRegistrationSuccess.set(true);
+      this.resultDialog.showSuccess({
+        title: 'Registration Successful!',
+        message: 'Welcome to the community! Your account is now active.',
+        primaryLabel: 'Done',
+        onPrimary: () => {
+          void this.router.navigate(['/login']);
+        },
+      });
       return;
     }
     if (result.target === 'alert') {
@@ -93,10 +100,5 @@ export class RegisterComponent {
 
   google(): void {
     void this.auth.googleLogin();
-  }
-
-  onRegistrationSuccessDone(): void {
-    this.showRegistrationSuccess.set(false);
-    void this.router.navigate(['/login']);
   }
 }

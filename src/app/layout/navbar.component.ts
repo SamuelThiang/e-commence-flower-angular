@@ -22,4 +22,9 @@ export class NavbarComponent {
   closeMenu(): void {
     this.menuOpen.set(false);
   }
+
+  logout(): void {
+    this.cart.resetLocalForLogout();
+    void this.auth.logout();
+  }
 }

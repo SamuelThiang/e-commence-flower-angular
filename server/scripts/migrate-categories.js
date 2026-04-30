@@ -2,21 +2,11 @@
  * One-time migration: legacy products.category (text) -> categories table + products.category_id.
  * Safe to run multiple times (no-op if already migrated).
  */
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
 import pg from 'pg';
 import { slugify } from './slugify.js';
+import { createPgPoolOptions } from '../src/pgPoolConfig.js';
 
-dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
-
-const pool = new pg.Pool({
-  host: process.env.DATABASE_HOST || 'localhost',
-  port: Number(process.env.DATABASE_PORT) || 5432,
-  database: process.env.DATABASE_NAME || 'ecommerce_florist_db',
-  user: process.env.DATABASE_USER || 'postgres',
-  password: process.env.DATABASE_PASSWORD,
-});
+const pool = new pg.Pool(createPgPoolOptions());
 
 async function columnExists(client, table, column) {
   const { rows } = await client.query(

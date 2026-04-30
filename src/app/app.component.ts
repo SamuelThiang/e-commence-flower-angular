@@ -3,11 +3,13 @@ import { RouterOutlet, Router, NavigationStart, NavigationEnd, NavigationCancel,
 import { NgxSpinnerModule } from 'ngx-spinner';
 import { Subscription } from 'rxjs';
 import { LoadingService } from './core/loading.service';
+import { ResultDialogComponent } from './shared/result-dialog/result-dialog.component';
+import { ResultDialogService } from './shared/result-dialog/result-dialog.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgxSpinnerModule],
+  imports: [RouterOutlet, NgxSpinnerModule, ResultDialogComponent],
   templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit, OnDestroy {
@@ -15,6 +17,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private readonly router = inject(Router);
   private readonly loading = inject(LoadingService);
+  readonly resultDialog = inject(ResultDialogService);
   private routerSub?: Subscription;
 
   ngOnInit(): void {

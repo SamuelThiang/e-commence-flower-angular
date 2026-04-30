@@ -35,6 +35,13 @@ export interface OrderItem {
   shippingDetails?: ShippingDetail[];
 }
 
+/** POST /api/orders body line — server loads name/price/image from DB. */
+export interface OrderSubmitLine {
+  productId: string;
+  quantity: number;
+  shippingDetails?: ShippingDetail[];
+}
+
 export interface Order {
   id: string;
   date: string;
@@ -47,7 +54,11 @@ export interface Order {
 }
 
 export interface CartLine {
+  /** Present when cart is loaded from `/api/cart` (logged-in). */
+  lineId?: string;
   product: Product;
   quantity: number;
   preferredDeliveryDate: string;
+  needsGiftcard?: boolean;
+  giftcardMessage?: string;
 }

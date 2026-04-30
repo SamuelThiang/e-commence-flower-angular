@@ -6,13 +6,16 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth.service';
 import { AddressApiService } from '../../core/address-api.service';
 import { OrderApiService } from '../../core/order-api.service';
 import { CartService } from '../../core/cart.service';
 import type { CartLine } from '../../shared/catalog';
+import { ResultDialogService } from '../../shared/result-dialog/result-dialog.service';
 
 type UnitDetail = {
   address: string;
@@ -31,8 +34,9 @@ export class CheckoutComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly addressApi = inject(AddressApiService);
-  private readonly orderApi = inject(OrderApiService);
+  private   readonly orderApi = inject(OrderApiService);
   readonly cartService = inject(CartService);
+  private readonly resultDialog = inject(ResultDialogService);
 
   readonly isProductsExpanded = signal(true);
   readonly isSummaryExpanded = signal(true);
@@ -217,6 +221,32 @@ export class CheckoutComponent {
     this.isSummaryExpanded.update((v) => !v);
   }
 
+  private orderErrorTextFromHttp(err: unknown): string {
+    const fallback = 'Could not place order. Please try again.';
+    if (!(err instanceof HttpErrorResponse)) {
+      return fallback;
+    }
+    if (err.status === 0) {
+      return 'Cannot reach server. Check your connection.';
+    }
+    const b = err.error;
+    if (b && typeof b === 'object' && b !== null) {
+      if (typeof (b as { error?: string }).error === 'string') {
+        const m = (b as { error: string }).error.trim();
+        if (m) return m;
+      }
+      if (typeof (b as { message?: string }).message === 'string') {
+        const m = (b as { message: string }).message.trim();
+        if (m) return m;
+      }
+      if (typeof (b as { detail?: string }).detail === 'string') {
+        const m = (b as { detail: string }).detail.trim();
+        if (m) return m;
+      }
+    }
+    return fallback;
+  }
+
   placeOrder(): void {
     const user = this.authService.user();
     if (!user) {
@@ -253,7 +283,7 @@ export class CheckoutComponent {
         },
       );
       return {
-        product: item.product,
+        productId: item.product.id,
         quantity: item.quantity,
         shippingDetails: itemShippingDetails,
       };
@@ -274,16 +304,31 @@ export class CheckoutComponent {
       deliveryOption: this.deliveryOption(),
     };
 
-    this.orderApi.create(newOrder).subscribe({
-      next: () => {
-        this.cartService.clear();
-        void this.router.navigate(['/orders']);
-      },
-      error: (err) => {
-        console.error(err);
-        alert('Could not place order. Please try again.');
-      },
-      complete: () => this.isSubmitting.set(false),
-    });
+    this.orderApi
+      .create(newOrder)
+      .pipe(finalize(() => this.isSubmitting.set(false)))
+      .subscribe({
+        next: (order) => {
+          this.cartService.clearAfterOrderSuccess();
+          this.resultDialog.showSuccess({
+            title: 'Order successful!',
+            message:
+              "Thank you! Your order has been placed and we're preparing your specimens.",
+            detailLine: order.id,
+            primaryLabel: 'Done',
+            onPrimary: () => {
+              void this.router.navigate(['/orders']);
+            },
+          });
+        },
+        error: (err) => {
+          console.error(err);
+          this.resultDialog.showError({
+            title: 'Order not placed',
+            message: this.orderErrorTextFromHttp(err),
+            primaryLabel: 'OK',
+          });
+        },
+      });
   }
 }
