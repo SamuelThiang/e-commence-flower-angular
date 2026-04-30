@@ -195,7 +195,7 @@
             >
               <img
                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                [src]="product.image"
+                [src]="product.image | productImageUrl"
                 [alt]="product.name"
               />
             </a>

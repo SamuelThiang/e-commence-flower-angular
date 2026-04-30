@@ -4,11 +4,12 @@ import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth.service';
 import { OrderApiService } from '../../core/order-api.service';
 import type { Order } from '../../shared/catalog';
+import { ProductImageUrlPipe } from '../../shared/product-image-url.pipe';
 
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [RouterLink, LucideAngularModule],
+  imports: [RouterLink, LucideAngularModule, ProductImageUrlPipe],
   templateUrl: './orders.component.html',
 })
 export class OrdersComponent {

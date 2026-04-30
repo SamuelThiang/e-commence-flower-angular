@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import type { Product } from '../../shared/catalog';
+import { resolveProductImageUrl } from '../../shared/media-url';
 import { CartService } from '../../core/cart.service';
 import { ProductService } from '../../core/product.service';
 
@@ -35,7 +36,7 @@ export class ProductDetailComponent {
   }
 
   imagesFor(p: Product): string[] {
-    return [p.image, ...this.extraImages];
+    return [resolveProductImageUrl(p.image), ...this.extraImages];
   }
 
   getTomorrow(): string {

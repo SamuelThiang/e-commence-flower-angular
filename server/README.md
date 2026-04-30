@@ -142,8 +142,7 @@ API base URL: `http://localhost:3000/api`
   - Bearer JWT for a user whose `users.role` is **`admin`** — promote with  
     `UPDATE users SET role = 'admin' WHERE email = 'you@example.com';`
   - Or set **`ADMIN_UPLOAD_KEY`** in `.env` / Railway and send header **`X-Admin-Upload-Key`** with the same value (no JWT).
-- **Response:** JSON product including updated **`image`** URL pointing at `/uploads/products/...`.
-- **`PUBLIC_API_BASE_URL`:** Set on production (e.g. `https://your-api.up.railway.app`, no trailing slash) so stored image URLs are correct. If omitted, the API derives `http(s)://host` from the incoming request (needs **`trust proxy`** on Railway — already enabled).
+- **Response:** JSON product with **`image`** as a **relative path** (e.g. `/uploads/products/1.png`). The Angular app resolves it using **`environment.mediaBaseUrl`** (CDN/S3) when set, otherwise the API origin without `/api`. The DB does **not** store the Railway hostname so URLs stay portable across deploys.
 
 Example (upload key):
 

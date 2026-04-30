@@ -1,12 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { ProductImageUrlPipe } from '../../shared/product-image-url.pipe';
 import { CartService } from '../../core/cart.service';
 
 @Component({
   selector: 'app-cart',
   standalone: true,
-  imports: [RouterLink, LucideAngularModule],
+  imports: [RouterLink, LucideAngularModule, ProductImageUrlPipe],
   templateUrl: './cart.component.html',
 })
 export class CartComponent {

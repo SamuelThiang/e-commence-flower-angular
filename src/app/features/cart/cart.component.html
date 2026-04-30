@@ -22,7 +22,7 @@
             class="w-24 h-24 md:w-48 md:h-48 rounded-lg overflow-hidden bg-surface-container-low flex-shrink-0"
           >
             <img
-              [src]="item.product.image"
+              [src]="item.product.image | productImageUrl"
               [alt]="item.product.name"
               class="w-full h-full object-cover"
             />

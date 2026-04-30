@@ -330,7 +330,7 @@
               >
                 <img
                   class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  [src]="product.image"
+                  [src]="product.image | productImageUrl"
                   [alt]="product.name"
                 />
                 <div class="absolute top-4 left-4 flex flex-col gap-2">

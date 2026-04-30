@@ -30,12 +30,6 @@ const upload = multer({
   },
 });
 
-function publicUploadsBase(req) {
-  const configured = process.env.PUBLIC_API_BASE_URL?.replace(/\/$/, '');
-  if (configured) return configured;
-  return `${req.protocol}://${req.get('host')}`;
-}
-
 function removeExistingProductImageFiles(productId) {
   let names;
   try {
@@ -132,10 +126,11 @@ router.post(
       const diskPath = path.join(PRODUCT_UPLOAD_DIR, filename);
       fs.writeFileSync(diskPath, file.buffer);
 
-      const url = `${publicUploadsBase(req)}/uploads/products/${encodeURIComponent(filename)}`;
+      /** Relative path only — clients resolve with `environment.mediaBaseUrl` (CDN) or API origin. */
+      const relativeImagePath = `/uploads/products/${filename}`;
 
       await pool.query(`UPDATE products SET image = $1 WHERE id = $2`, [
-        url,
+        relativeImagePath,
         productId,
       ]);
 

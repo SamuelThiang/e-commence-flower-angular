@@ -15,6 +15,7 @@ import { AddressApiService } from '../../core/address-api.service';
 import { OrderApiService } from '../../core/order-api.service';
 import { CartService } from '../../core/cart.service';
 import type { CartLine } from '../../shared/catalog';
+import { ProductImageUrlPipe } from '../../shared/product-image-url.pipe';
 import { ResultDialogService } from '../../shared/result-dialog/result-dialog.service';
 
 type UnitDetail = {
@@ -27,7 +28,7 @@ type UnitDetail = {
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [LucideAngularModule],
+  imports: [LucideAngularModule, ProductImageUrlPipe],
   templateUrl: './checkout.component.html',
 })
 export class CheckoutComponent {

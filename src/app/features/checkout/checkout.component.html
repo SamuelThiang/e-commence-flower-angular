@@ -148,7 +148,7 @@
                     class="w-20 h-20 md:w-32 md:h-32 rounded-xl overflow-hidden bg-surface-container-low flex-shrink-0"
                   >
                     <img
-                      [src]="unit.product.image"
+                      [src]="unit.product.image | productImageUrl"
                       [alt]="unit.product.name"
                       class="w-full h-full object-cover"
                     />
