@@ -115,6 +115,7 @@ API base URL: `http://localhost:3000/api`
 |--------|------|------|
 | POST | `/api/auth/register` | No |
 | POST | `/api/auth/login` | No |
+| POST | `/api/auth/admin-token` | No — body `{ "email", "password" }`; **admin only**; returns JWT for tools (e.g. image upload) |
 | GET | `/api/auth/me` | Bearer JWT |
 | PATCH | `/api/users/me` | Bearer |
 | GET | `/api/addresses` | Bearer |

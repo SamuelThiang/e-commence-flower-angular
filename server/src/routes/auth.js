@@ -134,6 +134,55 @@ router.post('/login', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/auth/admin-token
+ * Same JSON body as login (`email`, `password`). Returns a JWT only if the user exists and `role` is `admin`.
+ * Use in Postman: Authorization → Bearer Token → paste `token`.
+ */
+router.post('/admin-token', async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!String(email || '').trim()) {
+    return res.status(400).json(authErrorBody('Email is required', 'email'));
+  }
+  if (!password) {
+    return res.status(400).json(authErrorBody('Password is required', 'password'));
+  }
+  try {
+    const result = await pool.query(
+      `SELECT id, email, password_hash, display_name, phone, role
+       FROM users WHERE email = $1`,
+      [email.toLowerCase().trim()],
+    );
+    if (result.rowCount === 0) {
+      return res
+        .status(401)
+        .json(authErrorBody('No account found for this email.', 'email'));
+    }
+    const row = result.rows[0];
+    const ok = await bcrypt.compare(password, row.password_hash);
+    if (!ok) {
+      return res.status(401).json(authErrorBody('Incorrect password.', 'password'));
+    }
+    if (row.role !== 'admin') {
+      return res
+        .status(403)
+        .json(authErrorBody('Admin role required for this token.', 'role'));
+    }
+    const user = mapUserRow(row);
+    const token = signToken(user);
+    return res.json({
+      token,
+      expiresIn: '7d',
+      usage: 'Authorization: Bearer <token>',
+    });
+  } catch (e) {
+    console.error(e);
+    return res
+      .status(500)
+      .json(authErrorBody('Token request failed', undefined, { kind: 'system' }));
+  }
+});
+
 /** GET /api/auth/me */
 router.get('/me', requireAuth, async (req, res) => {
   try {
