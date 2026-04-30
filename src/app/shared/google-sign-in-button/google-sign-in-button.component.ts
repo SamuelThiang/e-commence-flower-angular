@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   NgZone,
+  OnDestroy,
   computed,
   inject,
   input,
@@ -12,25 +13,22 @@ import {
 import { environment } from '../../../environments/environment';
 
 /**
- * Custom pill button (your design) delegates to Google Identity Services via a programmatic
- * click on the hidden GIS control — avoids misaligned / non-clickable invisible overlays.
+ * Production-safe Google Sign-In:
+ * - Decorative pill is `pointer-events-none` (purely visual).
+ * - GIS button is mounted in a transparent overlay on top — REAL pointer events hit it.
+ *   (Programmatic `.click()` on the GIS iframe is unreliable on HTTPS/FedCM.)
+ * - We poll for `window.google.accounts.id` because in an SPA the `load` event has
+ *   already fired by the time the user navigates to /login, so a one-shot `load`
+ *   listener may never fire and GIS never mounts → "click does nothing".
  */
 @Component({
   selector: 'app-google-sign-in-button',
   standalone: true,
   template: `
     <div class="relative w-full">
-      <!-- GIS mounts here: invisible, no pointer capture — real clicks use the button below -->
       <div
-        #gisHost
-        class="pointer-events-none absolute left-0 top-0 z-0 h-full min-h-[52px] w-full opacity-0"
+        class="pointer-events-none relative z-0 flex w-full items-center justify-center gap-3 rounded-full border border-zinc-200 bg-white py-5 shadow-sm"
         aria-hidden="true"
-      ></div>
-      <button
-        type="button"
-        class="relative z-10 flex w-full cursor-pointer items-center justify-center gap-3 rounded-full border border-zinc-200 bg-white py-5 shadow-sm transition-colors hover:bg-zinc-50 active:scale-[0.98]"
-        [attr.aria-label]="labelText()"
-        (click)="onChromeClick($event)"
       >
         <img
           src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
@@ -40,11 +38,17 @@ import { environment } from '../../../environments/environment';
         <span class="text-xs font-bold uppercase tracking-[0.2em] text-zinc-900">{{
           labelText()
         }}</span>
-      </button>
+      </div>
+      <div
+        #gisHost
+        class="absolute inset-0 z-10 flex cursor-pointer items-center justify-center overflow-hidden rounded-full opacity-0"
+        [attr.aria-label]="labelText()"
+        role="presentation"
+      ></div>
     </div>
   `,
 })
-export class GoogleSignInButtonComponent implements AfterViewInit {
+export class GoogleSignInButtonComponent implements AfterViewInit, OnDestroy {
   private readonly zone = inject(NgZone);
   private readonly gisHostEl = viewChild.required<ElementRef<HTMLElement>>('gisHost');
 
@@ -56,8 +60,27 @@ export class GoogleSignInButtonComponent implements AfterViewInit {
 
   readonly signedIn = output<string>();
 
+  private pollId: number | null = null;
+  private failTimerId: number | null = null;
+  private mounted = false;
+
   ngAfterViewInit(): void {
     requestAnimationFrame(() => requestAnimationFrame(() => this.mountGis()));
+  }
+
+  ngOnDestroy(): void {
+    this.cleanup();
+  }
+
+  private cleanup(): void {
+    if (this.pollId !== null) {
+      window.clearInterval(this.pollId);
+      this.pollId = null;
+    }
+    if (this.failTimerId !== null) {
+      window.clearTimeout(this.failTimerId);
+      this.failTimerId = null;
+    }
   }
 
   private mountGis(): void {
@@ -66,56 +89,57 @@ export class GoogleSignInButtonComponent implements AfterViewInit {
     if (!host) return;
 
     if (!clientId) {
+      console.warn('[GoogleSignIn] environment.googleClientId is empty — button disabled.');
       host.innerHTML =
         '<span class="sr-only">Configure googleClientId</span>';
       return;
     }
 
-    const run = (): void => {
+    const tryRun = (): void => {
       const g = window.google?.accounts?.id;
-      if (!g) return;
-      g.initialize({
-        client_id: clientId,
-        callback: (resp: { credential: string }) => {
-          this.zone.run(() => this.signedIn.emit(resp.credential));
-        },
-      });
-      host.innerHTML = '';
-      const row = host.parentElement;
-      const w = Math.min((row?.offsetWidth ?? host.offsetWidth) || 384, 520);
-      g.renderButton(host, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        width: w,
-        shape: 'pill',
-        text: this.variant() === 'signup' ? 'signup_with' : 'signin_with',
-      });
+      if (!g || this.mounted) return;
+      this.mounted = true;
+      this.cleanup();
+      try {
+        g.initialize({
+          client_id: clientId,
+          callback: (resp: { credential: string }) => {
+            this.zone.run(() => this.signedIn.emit(resp.credential));
+          },
+        });
+        host.innerHTML = '';
+        const row = host.parentElement;
+        const w = Math.min((row?.offsetWidth ?? host.offsetWidth) || 384, 520);
+        g.renderButton(host, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          width: w,
+          shape: 'pill',
+          text: this.variant() === 'signup' ? 'signup_with' : 'signin_with',
+        });
+        console.info('[GoogleSignIn] GIS button mounted.');
+      } catch (err) {
+        console.error('[GoogleSignIn] initialize/renderButton failed:', err);
+      }
     };
 
     if (window.google?.accounts?.id) {
-      run();
-    } else {
-      window.addEventListener('load', run, { once: true });
+      tryRun();
+      return;
     }
-  }
 
-  onChromeClick(ev: Event): void {
-    ev.preventDefault();
-    const host = this.gisHostEl()?.nativeElement;
-    if (!host?.hasChildNodes()) {
-      return;
-    }
-    const inner =
-      (host.querySelector('div[role="button"]') as HTMLElement | null) ??
-      (host.querySelector('[tabindex="0"]') as HTMLElement | null);
-    if (inner) {
-      inner.click();
-      return;
-    }
-    const iframe = host.querySelector('iframe');
-    iframe?.dispatchEvent(
-      new MouseEvent('click', { bubbles: true, cancelable: true, view: window }),
-    );
+    window.addEventListener('load', tryRun, { once: true });
+    this.pollId = window.setInterval(tryRun, 50);
+    this.failTimerId = window.setTimeout(() => {
+      this.cleanup();
+      if (!this.mounted) {
+        console.error(
+          '[GoogleSignIn] gsi/client never loaded after 20s. Check network tab / blockers / CSP.',
+        );
+        host.innerHTML =
+          '<p class="pointer-events-none px-2 text-center text-[11px] text-red-600">Google Sign-In script failed to load. Check network / ad blockers.</p>';
+      }
+    }, 20000);
   }
 }
