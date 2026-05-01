@@ -85,6 +85,18 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products (category_id);
 
+-- Additional photos for product detail (cover remains products.image)
+CREATE TABLE IF NOT EXISTS product_gallery_images (
+  id          UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id  VARCHAR(32)    NOT NULL REFERENCES products (id) ON DELETE CASCADE,
+  image       TEXT           NOT NULL,
+  sort_order  INTEGER        NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ    NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_gallery_images_product_sort
+  ON product_gallery_images (product_id, sort_order ASC, created_at ASC);
+
 -- Keep categories.product_count in sync with products rows
 CREATE OR REPLACE FUNCTION maintain_category_product_count()
 RETURNS TRIGGER AS $$

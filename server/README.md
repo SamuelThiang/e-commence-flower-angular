@@ -95,6 +95,12 @@ For CLI-based setup you can also run `npx neonctl@latest init` ([Neon CLI](https
    npm run db:migrate-007
    ```
 
+   **Product detail gallery** (`product_gallery_images` — extra photos per product; primary cover stays `products.image`; admin `POST /api/products/:id/gallery`):
+
+   ```bash
+   npm run db:migrate-008
+   ```
+
    Do **not** rely on `npm run db:init` to fix an existing database: `CREATE TABLE IF NOT EXISTS` leaves old tables unchanged. Use migrations or manual `ALTER TABLE` instead.
 
    After you copy existing JSON lines into `order_items`, drop the legacy column:
@@ -186,7 +192,9 @@ On **localhost**, ToyyibPay **cannot** POST to your callback URL — **`sync-ret
 | POST | `/api/cart/merge` | Bearer |
 | GET | `/api/products` | No |
 | GET | `/api/products/:id` | No |
-| POST | `/api/products/:id/image` | Admin (JWT **or** `X-Admin-Upload-Key` — see below) |
+| POST | `/api/products/:id/image` | Admin — multipart **`image`**; sets primary **`products.image`** (detail hero + listings) |
+| POST | `/api/products/:id/gallery` | Admin — multipart **`image`**; appends one extra detail-gallery file (`id_g_<uuid>.ext`, stored in **`product_gallery_images`**) |
+| DELETE | `/api/products/:id/gallery/:galleryRowId` | Admin — removes one gallery row by **`galleryRowId`** (UUID from DB); does **not** change primary image |
 | GET | `/api/categories` | No |
 
 ### Product image upload (`POST /api/products/:id/image`)
@@ -204,6 +212,12 @@ Example (upload key):
 curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./photo.jpg" https://YOUR_API/api/products/1/image
 ```
 
+**Extra detail photos** (`POST /api/products/:id/gallery`, same auth): multipart field **`image`** — call once per file. The storefront detail page shows **primary** (`…/image`) as the large image and as the **first** thumbnail, then each gallery upload as additional thumbnails.
+
+```bash
+curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./detail2.jpg" https://YOUR_API/api/products/1/gallery
+```
+
 **Railway note:** The container filesystem is usually **ephemeral**; redeploys can delete uploaded files. For durable hosting use object storage (S3, Cloudinary, etc.) or attach a **Railway volume** and point uploads at that path.
 
 ## Tables
@@ -212,6 +226,7 @@ curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./photo.jpg" https:
 - **addresses** — shipping addresses per user
 - **categories** — catalog categories (`slug`, `name`, `sort_order`, **`product_count`** maintained by DB triggers on `products`)
 - **products** — catalog (`category_id` → `categories`)
+- **product_gallery_images** — optional extra photos for product detail (`product_id`, `image`, `sort_order`); primary listing image remains **`products.image`**
 - **orders** — placed orders (`ordered_at`, optional legacy `items` JSONB; prefer **`order_items`** + **`payments`**)
 - **order_items** — line items per order (gift-card fields per line)
 - **payments** — payment attempts / sandbox gateway audit trail

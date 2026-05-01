@@ -1,6 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { EMPTY } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import type { Product } from '../../shared/catalog';
 import { resolveProductImageUrl } from '../../shared/media-url';
 import { CartService } from '../../core/cart.service';
@@ -22,21 +24,35 @@ export class ProductDetailComponent {
   readonly selectedImage = signal(0);
   readonly preferredDeliveryDate = signal(this.cartService.getTomorrow());
 
-  readonly extraImages = [
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuCXAC3AQBAqim9ew0EVNDihBdR_NuRcydjBZjygB9w1oVqECPfi-mVEE0JebHIgX27bYgb6BJOv3lKt5ngTM4TpYhLmnM97MBLvdM6XXrA8sjQr1xCfGBmR2c2HzXJlUu_inNCNQdfkDKI0xwRLr8uBe41J2_gI8cCl48X6BJpwhx19JKqFlAGsHP6J3D1ubJ8EH59iTkYPq-HePbTrCopStJU23CVTR87rfkhf8WHErXHUCW-B4AErYhI6d9sgzA-Cbud7G4oDR3Vh',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDBvqAhh3X4vyBMw5JqXdrZYw2Z9yzmJxrSLEV17ZkszLRti8MAHxjNSkNKwxL40pirXgbSka2LbH4oDdHRnlGLO71S_JYdZOX7u8V6YmXnLXE6OAl797RkV0flwvpOgjhcUGfui-EJSWB_t1geBVci_8YvnzPN0m83ltVWFBG0r5Sq78qr-biAfblvpWDCwC2H7xmUwyqlza03nO9gp5OVg9HtZ0dFuW2KSZu8OSZJDQ6tx6c35mN6dHrDKFRhfZN61hPpnj7gbau',
-  ];
-
   constructor() {
-    const id = this.route.snapshot.paramMap.get('id') || '';
-    this.productService.getById(id).subscribe({
-      next: (p) => this.product.set(p),
-      error: () => void this.router.navigate(['/shop']),
-    });
+    this.route.paramMap
+      .pipe(
+        switchMap((params) => {
+          const id = params.get('id') ?? '';
+          this.selectedImage.set(0);
+          if (!id.trim()) {
+            void this.router.navigate(['/shop']);
+            return EMPTY;
+          }
+          return this.productService.getById(id.trim());
+        }),
+      )
+      .subscribe({
+        next: (p) => this.product.set(p),
+        error: () => void this.router.navigate(['/shop']),
+      });
   }
 
+  /**
+   * Hero + thumbnails: first slot is always the primary `image`; following slots are admin-uploaded gallery images.
+   * With two uploads total (cover + one gallery), UI shows [cover, cover, gallery1] → two distinct thumbnails where the first matches the hero.
+   */
   imagesFor(p: Product): string[] {
-    return [resolveProductImageUrl(p.image), ...this.extraImages];
+    const primary = resolveProductImageUrl(p.image);
+    const extras = (p.galleryImages ?? []).map((src) =>
+      resolveProductImageUrl(src),
+    );
+    return [primary, ...extras];
   }
 
   getTomorrow(): string {

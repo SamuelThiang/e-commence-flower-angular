@@ -6,7 +6,10 @@ export interface Product {
   /** FK to categories.id (UUID string) when returned by API */
   categoryId?: string;
   price: number;
+  /** Primary cover (listings, cart, orders). */
   image: string;
+  /** Extra detail-page photos only; paths like `/uploads/products/...`, same rules as `image`. */
+  galleryImages?: string[];
   description: string;
   seasonal?: boolean;
   exclusive?: boolean;
