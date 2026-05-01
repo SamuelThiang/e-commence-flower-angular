@@ -121,6 +121,36 @@ function unlinkUploadBasename(relativePath) {
   }
 }
 
+/** Absolute Cloudinary/CDN URL or `/uploads/products/...` path */
+async function appendGalleryImageRow(poolOrClient, productId, image) {
+  const maxRow = await poolOrClient.query(
+    `SELECT COALESCE(MAX(sort_order), -1)::int AS m
+     FROM product_gallery_images WHERE product_id = $1`,
+    [productId],
+  );
+  const nextOrder = Number(maxRow.rows[0].m) + 1;
+  await poolOrClient.query(
+    `INSERT INTO product_gallery_images (product_id, image, sort_order)
+     VALUES ($1, $2, $3)`,
+    [productId, image, nextOrder],
+  );
+}
+
+/** Accept `image`, `imageUrl`, or `url` — must be http(s). */
+function parseRemoteGalleryImageUrl(body) {
+  const raw = body?.image ?? body?.imageUrl ?? body?.url;
+  if (raw == null || typeof raw !== 'string') return null;
+  const s = raw.trim();
+  if (s.length === 0 || s.length > 4096) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveCategoryUuid(poolOrClient, body) {
   const rawId = body.categoryId ?? body.category_id;
   const rawSlug = body.categorySlug ?? body.category_slug;
@@ -314,15 +344,7 @@ router.post(
       fs.writeFileSync(diskPath, file.buffer);
       const relativeImagePath = `/uploads/products/${filename}`;
 
-      await pool.query(
-        `INSERT INTO product_gallery_images (product_id, image, sort_order)
-         VALUES (
-           $1,
-           $2,
-           (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM product_gallery_images WHERE product_id = $1)
-         )`,
-        [productId, relativeImagePath],
-      );
+      await appendGalleryImageRow(pool, productId, relativeImagePath);
 
       const mapped = await fetchProductMappedWithGallery(pool, productId);
       return res.json(mapped);
@@ -332,6 +354,37 @@ router.post(
     }
   },
 );
+
+/**
+ * POST /api/products/:id/gallery-url
+ * JSON body: `{ "image": "https://..." }` (or `imageUrl` / `url`). Stores full URL in product_gallery_images — no file upload (e.g. Cloudinary).
+ */
+router.post('/:id/gallery-url', productImageUploadAuth, async (req, res) => {
+  const productId = req.params.id;
+  const imageUrl = parseRemoteGalleryImageUrl(req.body || {});
+  if (!imageUrl) {
+    return res.status(400).json({
+      error:
+        'Provide a JSON body with image (or imageUrl / url): full https URL of the picture',
+    });
+  }
+  try {
+    const exists = await pool.query(`SELECT 1 FROM products WHERE id = $1`, [
+      productId,
+    ]);
+    if (exists.rowCount === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    await appendGalleryImageRow(pool, productId, imageUrl);
+
+    const mapped = await fetchProductMappedWithGallery(pool, productId);
+    return res.json(mapped);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Failed to add gallery image URL' });
+  }
+});
 
 /**
  * DELETE /api/products/:id/gallery/:galleryRowId

@@ -195,6 +195,7 @@ On **localhost**, ToyyibPay **cannot** POST to your callback URL — **`sync-ret
 | GET | `/api/products/:id` | No |
 | POST | `/api/products/:id/image` | Admin — multipart **`image`**; sets primary **`products.image`** (detail hero + listings) |
 | POST | `/api/products/:id/gallery` | Admin — multipart **`image`**; appends one extra detail-gallery file (`id_g_<uuid>.ext`, stored in **`product_gallery_images`**) |
+| POST | `/api/products/:id/gallery-url` | Admin — JSON **`{ "image": "https://..." }`** (or **`imageUrl`** / **`url`**); stores full URL (e.g. Cloudinary) in **`product_gallery_images`** — no file upload |
 | DELETE | `/api/products/:id/gallery/:galleryRowId` | Admin — removes one gallery row by **`galleryRowId`** (UUID from DB); does **not** change primary image |
 | GET | `/api/categories` | No |
 
@@ -217,6 +218,14 @@ curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./photo.jpg" https:
 
 ```bash
 curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./detail2.jpg" https://YOUR_API/api/products/1/gallery
+```
+
+**Gallery via CDN URL** (`POST /api/products/:id/gallery-url`): JSON body, same admin auth — full URL is saved in **`product_gallery_images.image`** (Angular resolves absolute URLs as-is).
+
+```bash
+curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -H "Content-Type: application/json" \
+  -d "{\"image\":\"https://res.cloudinary.com/your-cloud/image/upload/v123/sample.webp\"}" \
+  https://YOUR_API/api/products/1/gallery-url
 ```
 
 **Railway note:** The container filesystem is usually **ephemeral**; redeploys can delete uploaded files. For durable hosting use object storage (S3, Cloudinary, etc.) or attach a **Railway volume** and point uploads at that path.
