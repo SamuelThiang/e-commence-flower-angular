@@ -272,6 +272,36 @@ CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id    ON cart_items (cart_id);
 CREATE INDEX IF NOT EXISTS idx_cart_items_product_id ON cart_items (product_id);
 
 -- ─────────────────────────────────────────────────────────────
+-- CHECKOUT PRICING (singleton row id = 1; Malaysia SST-style estimates)
+-- ─────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS shop_checkout_settings (
+  id                              SMALLINT PRIMARY KEY DEFAULT 1
+                                    CHECK (id = 1),
+  priority_courier_fee_myr        NUMERIC(10, 2) NOT NULL DEFAULT 24.00,
+  sst_service_tax_rate_percent    NUMERIC(6, 3)  NOT NULL DEFAULT 6.000,
+  tax_base                        VARCHAR(32)    NOT NULL DEFAULT 'subtotal'
+                                    CHECK (tax_base IN (
+                                      'subtotal',
+                                      'subtotal_and_delivery',
+                                      'delivery_only',
+                                      'none'
+                                    )),
+  courier_fee_label               TEXT           NOT NULL DEFAULT 'Priority courier (Lalamove)',
+  tax_display_label               TEXT           NOT NULL DEFAULT 'Estimated SST (service tax)',
+  updated_at                      TIMESTAMPTZ    NOT NULL DEFAULT now()
+);
+
+INSERT INTO shop_checkout_settings (id)
+SELECT 1
+WHERE NOT EXISTS (SELECT 1 FROM shop_checkout_settings WHERE id = 1);
+
+DROP TRIGGER IF EXISTS trg_shop_checkout_settings_updated_at ON shop_checkout_settings;
+CREATE TRIGGER trg_shop_checkout_settings_updated_at
+  BEFORE UPDATE ON shop_checkout_settings
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────
 -- SHOP HOURS (unchanged)
 -- ─────────────────────────────────────────────────────────────
 

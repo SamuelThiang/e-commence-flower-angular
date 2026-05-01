@@ -7,6 +7,10 @@ import {
   isValidPassword,
   passwordValidationMessage,
 } from '../../core/password-validation';
+import {
+  isValidRegistrationPhone,
+  sanitizeRegistrationPhoneInput,
+} from '../../core/phone-validation';
 import { GoogleSignInButtonComponent } from '../../shared/google-sign-in-button/google-sign-in-button.component';
 
 @Component({
@@ -24,12 +28,19 @@ export class RegisterComponent {
   readonly password = signal('');
   readonly firstName = signal('');
   readonly lastName = signal('');
+  readonly phone = signal('');
   readonly showPassword = signal(false);
 
   readonly showEmailError = computed(() => {
     const v = this.email().trim();
     if (!v) return false;
     return !isValidEmail(v);
+  });
+
+  readonly showPhoneFormatError = computed(() => {
+    const v = this.phone();
+    if (!v) return false;
+    return !isValidRegistrationPhone(v);
   });
 
   readonly passwordErrorMessage = computed(() =>
@@ -40,16 +51,28 @@ export class RegisterComponent {
   readonly passwordApiError = signal<string | null>(null);
   readonly firstNameApiError = signal<string | null>(null);
   readonly lastNameApiError = signal<string | null>(null);
+  readonly phoneApiError = signal<string | null>(null);
 
   clearSubmitError(): void {
     this.emailApiError.set(null);
     this.passwordApiError.set(null);
     this.firstNameApiError.set(null);
     this.lastNameApiError.set(null);
+    this.phoneApiError.set(null);
   }
 
   togglePasswordVisibility(): void {
     this.showPassword.update((v) => !v);
+  }
+
+  onPhoneInput(ev: Event): void {
+    const el = ev.target as HTMLInputElement;
+    const cleaned = sanitizeRegistrationPhoneInput(el.value);
+    if (el.value !== cleaned) {
+      el.value = cleaned;
+    }
+    this.phone.set(cleaned);
+    this.clearSubmitError();
   }
 
   async submit(ev: Event): Promise<void> {
@@ -62,11 +85,20 @@ export class RegisterComponent {
     if (!isValidPassword(this.password())) {
       return;
     }
+    const phone = this.phone();
+    if (!phone) {
+      this.phoneApiError.set('Phone number is required.');
+      return;
+    }
+    if (!isValidRegistrationPhone(phone)) {
+      return;
+    }
     const result = await this.auth.register(
       this.email(),
       this.password(),
       this.firstName(),
       this.lastName(),
+      phone,
     );
     if (result.ok) {
       this.resultDialog.showSuccess({
@@ -95,6 +127,9 @@ export class RegisterComponent {
         break;
       case 'lastName':
         this.lastNameApiError.set(result.message);
+        break;
+      case 'phone':
+        this.phoneApiError.set(result.message);
         break;
     }
   }

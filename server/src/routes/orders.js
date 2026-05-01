@@ -4,6 +4,10 @@ import { getToyyibPayConfig } from '../config/toyyibpay.js';
 import { ORDER_STATUSES, isAllowedOrderStatus } from '../constants/orderStatus.js';
 import { GATEWAY_TOYYIBPAY } from '../constants/paymentGateways.js';
 import { createToyyibBill } from '../services/toyyibpayService.js';
+import {
+  computeOrderPricing,
+  fetchCheckoutSettings,
+} from '../services/checkoutPricing.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
@@ -172,25 +176,80 @@ function mapOrderRow(row, items) {
   };
 }
 
-async function selectOrdersForUser(poolOrClient, userId) {
+/** Acquisition history: newest N orders only (pagination slices within this window). */
+const ORDERS_HISTORY_CAP = 20;
+const ORDERS_PAGE_SIZES = new Set([1, 5, 10]);
+
+/** Express may give `string | string[]` for repeated query keys — use first value. */
+function firstQueryParam(val) {
+  if (val == null) return undefined;
+  return Array.isArray(val) ? val[0] : val;
+}
+
+function normalizeOrderListQuery(req) {
+  let page = parseInt(String(firstQueryParam(req.query.page) ?? '1'), 10);
+  let pageSize = parseInt(
+    String(firstQueryParam(req.query.pageSize) ?? '10'),
+    10,
+  );
+  if (!Number.isFinite(page) || page < 1) page = 1;
+  if (!ORDERS_PAGE_SIZES.has(pageSize)) pageSize = 10;
+  return { page, pageSize };
+}
+
+/**
+ * Stats + page of orders within the capped newest-{ORDERS_HISTORY_CAP} window.
+ * @returns {{ rows: unknown[], cappedTotal: number, inTransitInSet: number }}
+ */
+async function selectOrdersHistoryPage(poolOrClient, userId, page, pageSize) {
+  const offset = (page - 1) * pageSize;
+  const cap = ORDERS_HISTORY_CAP;
+
+  const stats = await poolOrClient.query(
+    `SELECT COUNT(*)::int AS capped_total,
+            COUNT(*) FILTER (WHERE status = 'In Transit')::int AS in_transit
+     FROM (
+       SELECT status FROM orders WHERE user_id = $1 ORDER BY ordered_at DESC LIMIT $2
+     ) t`,
+    [userId, cap],
+  );
+  const cappedTotal = stats.rows[0].capped_total;
+  const inTransitInSet = stats.rows[0].in_transit;
+
+  let rowsResult;
   try {
-    return await poolOrClient.query(
-      `SELECT id, user_id, ordered_at, status, items, total,
-              preferred_delivery_date, delivery_option
-       FROM orders WHERE user_id = $1 ORDER BY ordered_at DESC`,
-      [userId],
+    rowsResult = await poolOrClient.query(
+      `SELECT * FROM (
+         SELECT id, user_id, ordered_at, status, items, total,
+                preferred_delivery_date, delivery_option
+         FROM orders WHERE user_id = $1 ORDER BY ordered_at DESC LIMIT $2
+       ) r
+       ORDER BY r.ordered_at DESC
+       LIMIT $3 OFFSET $4`,
+      [userId, cap, pageSize, offset],
     );
   } catch (e) {
     if (e.code === '42703') {
-      return poolOrClient.query(
-        `SELECT id, user_id, ordered_at, status, total,
-                preferred_delivery_date, delivery_option
-         FROM orders WHERE user_id = $1 ORDER BY ordered_at DESC`,
-        [userId],
+      rowsResult = await poolOrClient.query(
+        `SELECT * FROM (
+           SELECT id, user_id, ordered_at, status, total,
+                  preferred_delivery_date, delivery_option
+           FROM orders WHERE user_id = $1 ORDER BY ordered_at DESC LIMIT $2
+         ) r
+         ORDER BY r.ordered_at DESC
+         LIMIT $3 OFFSET $4`,
+        [userId, cap, pageSize, offset],
       );
+    } else {
+      throw e;
     }
-    throw e;
   }
+
+  return {
+    rows: rowsResult.rows,
+    cappedTotal,
+    inTransitInSet,
+  };
 }
 
 async function selectOrderById(poolOrClient, orderId) {
@@ -214,17 +273,35 @@ async function selectOrderById(poolOrClient, orderId) {
   }
 }
 
-/** GET /api/orders */
+/**
+ * GET /api/orders?page=1&pageSize=10
+ * Returns only the newest ORDERS_HISTORY_CAP orders, paginated (pageSize 1, 5, or 10).
+ */
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const orders = await selectOrdersForUser(pool, req.userId);
+    const { page, pageSize } = normalizeOrderListQuery(req);
+    const { rows, cappedTotal, inTransitInSet } = await selectOrdersHistoryPage(
+      pool,
+      req.userId,
+      page,
+      pageSize,
+    );
+    const totalPages = Math.max(1, Math.ceil(cappedTotal / pageSize));
 
     const out = [];
-    for (const row of orders.rows) {
+    for (const row of rows) {
       const items = await itemsForOrder(row, pool);
       out.push(mapOrderRow(row, items));
     }
-    return res.json(out);
+
+    return res.json({
+      items: out,
+      total: cappedTotal,
+      page,
+      pageSize,
+      totalPages,
+      activeShipmentsInSet: inTransitInSet,
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Failed to load orders' });
@@ -267,11 +344,40 @@ router.post('/', requireAuth, async (req, res) => {
     });
   }
 
+  const delOpt = deliveryOption === 'pickup' ? 'pickup' : 'delivery';
+  const uniqueIds = [...new Set(normalizedLines.map((l) => l.productId))];
+  let computedSubtotal = 0;
+  const checkoutSettings = await fetchCheckoutSettings(pool);
+  {
+    const pr = await pool.query(
+      `SELECT id, price FROM products WHERE id = ANY($1::varchar[])`,
+      [uniqueIds],
+    );
+    if (pr.rows.length !== uniqueIds.length) {
+      return res.status(400).json({ error: 'Unknown product in order' });
+    }
+    const priceMap = new Map(pr.rows.map((r) => [r.id, Number(r.price)]));
+    for (const line of normalizedLines) {
+      const unit = priceMap.get(line.productId);
+      computedSubtotal += unit * line.quantity;
+    }
+  }
+  const priced = computeOrderPricing(computedSubtotal, delOpt, checkoutSettings);
+  const serverTotal = priced.total;
+  const clientTotal = Number(total);
+  if (
+    Number.isFinite(clientTotal) &&
+    Math.abs(clientTotal - serverTotal) > 0.02
+  ) {
+    console.warn(
+      `[orders] total mismatch order=${id} client=${clientTotal} server=${serverTotal} (using server)`,
+    );
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const orderedAt = date ? new Date(date) : new Date();
-    const delOpt = deliveryOption === 'pickup' ? 'pickup' : 'delivery';
 
     const flatDetails = [];
     for (const item of normalizedLines) {
@@ -290,7 +396,7 @@ router.post('/', requireAuth, async (req, res) => {
       orderedAt,
       orderStatus,
       itemsJson,
-      total,
+      serverTotal,
       preferredDeliveryDate || null,
       delOpt,
     ];
@@ -299,7 +405,7 @@ router.post('/', requireAuth, async (req, res) => {
       req.userId,
       orderedAt,
       orderStatus,
-      total,
+      serverTotal,
       preferredDeliveryDate || null,
       delOpt,
     ];
@@ -426,7 +532,7 @@ router.post('/', requireAuth, async (req, res) => {
         await client.query(
           `INSERT INTO payments (order_id, user_id, amount, currency, status, payment_method, gateway)
            VALUES ($1, $2, $3, 'MYR', 'pending', 'fpx', $4)`,
-          [id, req.userId, total, GATEWAY_TOYYIBPAY],
+          [id, req.userId, serverTotal, GATEWAY_TOYYIBPAY],
         );
       } catch (e) {
         await client.query('ROLLBACK TO SAVEPOINT sp_pay_ins');
@@ -472,7 +578,7 @@ router.post('/', requireAuth, async (req, res) => {
         const u = ur.rows[0] || {};
         const bill = await createToyyibBill({
           orderId: id,
-          amountMyr: Number(total),
+          amountMyr: serverTotal,
           billTo: u.display_name || 'Customer',
           billEmail: req.userEmail || u.email || '',
           billPhone: u.phone || '',
@@ -532,6 +638,91 @@ router.post('/', requireAuth, async (req, res) => {
     });
   } finally {
     client.release();
+  }
+});
+
+/**
+ * POST /api/orders/:id/retry-payment
+ * New ToyyibPay bill for an unpaid order (same order row — no cart refill).
+ */
+router.post('/:id/retry-payment', requireAuth, async (req, res) => {
+  const tp = getToyyibPayConfig();
+  if (!tp) {
+    return res.status(503).json({ error: 'Online payment is not enabled' });
+  }
+
+  const orderId = req.params.id;
+  try {
+    const ord = await pool.query(
+      `SELECT id, status, total FROM orders WHERE id = $1 AND user_id = $2`,
+      [orderId, req.userId],
+    );
+    if (ord.rowCount === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    if (ord.rows[0].status !== 'Failed') {
+      return res.status(400).json({
+        error: 'Only unpaid orders can be paid again',
+      });
+    }
+
+    const pay = await pool.query(
+      `SELECT id, status FROM payments
+       WHERE order_id = $1 AND gateway = $2`,
+      [orderId, GATEWAY_TOYYIBPAY],
+    );
+    if (pay.rowCount === 0) {
+      return res.status(400).json({
+        error: 'No FPX payment record for this order',
+      });
+    }
+
+    const payStatus = pay.rows[0].status;
+    if (payStatus === 'completed') {
+      return res.status(400).json({ error: 'Payment already completed' });
+    }
+
+    const total = Number(ord.rows[0].total);
+    const ur = await pool.query(
+      `SELECT display_name, phone, email FROM users WHERE id = $1`,
+      [req.userId],
+    );
+    const u = ur.rows[0] || {};
+
+    const bill = await createToyyibBill({
+      orderId,
+      amountMyr: total,
+      billTo: u.display_name || 'Customer',
+      billEmail: req.userEmail || u.email || '',
+      billPhone: u.phone || '',
+    });
+
+    const patch = JSON.stringify({
+      retryPaymentAt: new Date().toISOString(),
+      createBillResponse: bill.rawText,
+    });
+
+    await pool.query(
+      `UPDATE payments
+       SET transaction_id = $1,
+           status = 'pending',
+           paid_at = NULL,
+           gateway_response = COALESCE(gateway_response, '{}'::jsonb) || $2::jsonb
+       WHERE order_id = $3 AND gateway = $4`,
+      [bill.billCode, patch, orderId, GATEWAY_TOYYIBPAY],
+    );
+
+    return res.json({
+      billCode: bill.billCode,
+      paymentUrl: bill.paymentUrl,
+    });
+  } catch (e) {
+    console.error('retry-payment', e);
+    const msg =
+      e?.code === 'TOYYIBPAY_EMAIL'
+        ? e.message
+        : e?.message || 'Could not create payment bill';
+    return res.status(502).json({ error: msg });
   }
 });
 

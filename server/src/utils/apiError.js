@@ -1,8 +1,14 @@
-const FIELD_KEYS = new Set(['email', 'password', 'firstName', 'lastName']);
+const FIELD_KEYS = new Set([
+  'email',
+  'password',
+  'firstName',
+  'lastName',
+  'phone',
+]);
 
 /**
  * @param {string} message
- * @param {'email'|'password'|'firstName'|'lastName'|undefined|null} field - FE shows under that input
+ * @param {'email'|'password'|'firstName'|'lastName'|'phone'|undefined|null} field - FE shows under that input
  * @param {{ kind?: 'system'|'token' }} [opts] - When set, FE uses alert() (not inline)
  */
 export function authErrorBody(message, field = undefined, opts = {}) {

@@ -19,7 +19,8 @@ export type AuthFieldTarget =
   | 'email'
   | 'password'
   | 'firstName'
-  | 'lastName';
+  | 'lastName'
+  | 'phone';
 
 /**
  * Backend: `{ message, field?, kind? }`.
@@ -131,12 +132,13 @@ export class AuthService {
     pass: string,
     firstName: string,
     lastName: string,
+    phone: string,
   ): Promise<AuthActionResult> {
     try {
       await firstValueFrom(
         this.http.post<{ token: string; user: AppUser }>(
           `${this.apiUrl}/auth/register`,
-          { email, password: pass, firstName, lastName },
+          { email, password: pass, firstName, lastName, phone },
         ),
       );
       // Do not persist token — user signs in explicitly on the login page after Done.
@@ -243,7 +245,8 @@ export class AuthService {
       field === 'email' ||
       field === 'password' ||
       field === 'firstName' ||
-      field === 'lastName'
+      field === 'lastName' ||
+      field === 'phone'
     ) {
       return { ok: false, target: field, message };
     }

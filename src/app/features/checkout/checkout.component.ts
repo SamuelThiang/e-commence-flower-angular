@@ -16,6 +16,11 @@ import {
   OrderApiService,
   type CreateOrderPayment,
 } from '../../core/order-api.service';
+import { computeOrderPricing } from '../../core/checkout-pricing';
+import {
+  CheckoutSettingsService,
+  FALLBACK_CHECKOUT_SETTINGS,
+} from '../../core/checkout-settings.service';
 import { CartService } from '../../core/cart.service';
 import type { CartLine } from '../../shared/catalog';
 import { ProductImageUrlPipe } from '../../shared/product-image-url.pipe';
@@ -40,6 +45,7 @@ export class CheckoutComponent {
   private readonly addressApi = inject(AddressApiService);
   private readonly orderApi = inject(OrderApiService);
   readonly cartService = inject(CartService);
+  private readonly checkoutSettings = inject(CheckoutSettingsService);
   private readonly resultDialog = inject(ResultDialogService);
 
   /** One prompt per checkout visit (new component instance after login). */
@@ -75,6 +81,8 @@ export class CheckoutComponent {
   });
 
   constructor() {
+    this.checkoutSettings.ensureLoaded();
+
     if (this.cart().length === 0) {
       void this.router.navigate(['/cart']);
     }
@@ -161,15 +169,30 @@ export class CheckoutComponent {
     this.cart().reduce((acc, item) => acc + item.product.price * item.quantity, 0),
   );
 
-  readonly shipping = computed(() =>
-    this.deliveryOption() === 'pickup' ? 0 : 24,
+  readonly pricing = computed(() => {
+    const s =
+      this.checkoutSettings.settings() ?? FALLBACK_CHECKOUT_SETTINGS;
+    const opt = this.deliveryOption();
+    return computeOrderPricing(this.subtotal(), opt, s);
+  });
+
+  readonly courierLabel = computed(
+    () =>
+      this.checkoutSettings.settings()?.courierFeeLabel ??
+      FALLBACK_CHECKOUT_SETTINGS.courierFeeLabel,
   );
 
-  readonly tax = computed(() => this.subtotal() * 0.036);
-
-  readonly total = computed(
-    () => this.subtotal() + this.shipping() + this.tax(),
+  readonly taxLabel = computed(
+    () =>
+      this.checkoutSettings.settings()?.taxDisplayLabel ??
+      FALLBACK_CHECKOUT_SETTINGS.taxDisplayLabel,
   );
+
+  readonly shipping = computed(() => this.pricing().shipping);
+
+  readonly tax = computed(() => this.pricing().tax);
+
+  readonly total = computed(() => this.pricing().total);
 
   readonly placeOrderDisabled = computed(
     () =>

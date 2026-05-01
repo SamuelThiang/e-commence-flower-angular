@@ -133,8 +133,8 @@
           <div
             class="flex justify-between mt-4 text-[11px] font-medium text-on-surface-variant tracking-tighter"
           >
-            <span>$40</span>
-            <span>Up to ${{ price() === 500 ? '500+' : price() }}</span>
+            <span>RM 40</span>
+            <span>Up to RM {{ price() === 500 ? '500+' : price() }}</span>
           </div>
         </div>
       </div>
@@ -247,8 +247,8 @@
             <div
               class="flex justify-between mt-4 text-[11px] font-medium text-on-surface-variant tracking-tighter"
             >
-              <span>$40</span>
-              <span>Up to ${{ price() === 500 ? '500+' : price() }}</span>
+              <span>RM 40</span>
+              <span>Up to RM {{ price() === 500 ? '500+' : price() }}</span>
             </div>
           </div>
           <button
@@ -384,7 +384,7 @@
                         ? 'text-[10px] md:text-base'
                         : 'text-[10px] md:text-sm')
                   "
-                  >${{ product.price }}</span
+                  >RM {{ product.price }}</span
                 >
               </div>
               <button

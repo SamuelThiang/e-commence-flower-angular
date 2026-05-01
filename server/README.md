@@ -89,6 +89,12 @@ For CLI-based setup you can also run `npx neonctl@latest init` ([Neon CLI](https
    npm run db:migrate-004
    ```
 
+   **Checkout pricing** (`shop_checkout_settings` — priority courier fee MYR, SST-style estimated tax rate, tax base, UI labels; API `GET /api/checkout-settings`, server recomputes order totals from DB prices + these settings):
+
+   ```bash
+   npm run db:migrate-007
+   ```
+
    Do **not** rely on `npm run db:init` to fix an existing database: `CREATE TABLE IF NOT EXISTS` leaves old tables unchanged. Use migrations or manual `ALTER TABLE` instead.
 
    After you copy existing JSON lines into `order_items`, drop the legacy column:
@@ -167,7 +173,8 @@ On **localhost**, ToyyibPay **cannot** POST to your callback URL — **`sync-ret
 | POST | `/api/addresses` | Bearer |
 | PATCH | `/api/addresses/:id/default` | Bearer |
 | GET | `/api/orders` | Bearer |
-| POST | `/api/orders` | Bearer |
+| POST | `/api/orders` | Bearer — **`total` in body is ignored**; server sums **`products.price`** × qty + courier fee + estimated SST from **`shop_checkout_settings`** |
+| GET | `/api/checkout-settings` | No — courier fee MYR, SST rate %, tax base, labels for cart/checkout |
 | PATCH | `/api/orders/:id/status` | Bearer + **admin** `users.role` — body `{ "status" }`; allowed: `Failed`, `Processing`, `In Transit`, `Ready`, `Completed` |
 | POST | `/api/payments/toyyibpay/callback` | No — form body from ToyyibPay (set `TOYYIBPAY_CALLBACK_URL` to this path on a public URL; **localhost cannot receive this**) |
 | POST | `/api/payments/toyyibpay/sync-return` | Bearer — body `{ billCode, orderId }`; verifies payment via ToyyibPay **Get Bill Transactions** (used after Return URL on dev/local) |
@@ -210,5 +217,6 @@ curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -F "image=@./photo.jpg" https:
 - **payments** — payment attempts / sandbox gateway audit trail
 - **inventory** — stock per product (`quantity`, `reserved_quantity`)
 - **cart** / **cart_items** — persisted cart per user (gift-card fields mirror order lines)
+- **shop_checkout_settings** — singleton (`id = 1`): **priority_courier_fee_myr**, **sst_service_tax_rate_percent**, **tax_base** (`subtotal` \| `subtotal_and_delivery` \| `delivery_only` \| `none`), **courier_fee_label**, **tax_display_label** — adjust in SQL (no admin UI yet)
 - **shop_weekly_hours** — optional; one row per weekday: store open/close and optional delivery dispatch window
 - **shop_hours_exceptions** — optional; specific dates (closed or custom hours + note)

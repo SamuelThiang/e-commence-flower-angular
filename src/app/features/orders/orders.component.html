@@ -40,6 +40,9 @@
           Review your past botanical acquisitions and track current specimens in
           transit.
         </p>
+        <p class="text-xs text-zinc-400 mt-2 font-medium">
+          Showing up to 20 most recent orders.
+        </p>
       </div>
       <div class="flex gap-4">
         <div
@@ -50,7 +53,7 @@
           >
             Total Orders
           </p>
-          <p class="text-xl font-bold text-zinc-900">{{ orders().length }}</p>
+          <p class="text-xl font-bold text-zinc-900">{{ totalOrders() }}</p>
         </div>
         <div
           class="flex-1 md:flex-none px-6 py-3 rounded-2xl bg-white border border-on-surface/5 shadow-sm"
@@ -61,13 +64,13 @@
             Active Shipments
           </p>
           <p class="text-xl font-bold text-zinc-900">
-            {{ activeShipments() }}
+            {{ activeShipmentsCount() }}
           </p>
         </div>
       </div>
     </div>
 
-    @if (orders().length === 0) {
+    @if (!loading() && totalOrders() === 0) {
       <div
         class="py-24 md:py-32 text-center glass-card rounded-[2rem] md:rounded-[3rem] border border-zinc-100"
       >
@@ -123,7 +126,7 @@
                     {{ formatOrderDate(order.date) }}
                   </p>
                   <p class="text-sm text-on-surface-variant mt-1">
-                    Total: ${{ order.total.toLocaleString() }}
+                    Total: RM {{ order.total.toLocaleString() }}
                   </p>
                   @if (order.deliveryOption === 'pickup') {
                     <p
@@ -140,9 +143,23 @@
                     </p>
                   }
                 </div>
+                @if (order.status === 'Failed') {
+                  <button
+                    type="button"
+                    (click)="retryPayment(order)"
+                    [disabled]="retryingOrderId() === order.id"
+                    class="cursor-pointer w-full py-4 rounded-2xl bg-zinc-900 text-white text-sm font-bold uppercase tracking-wider disabled:opacity-50 disabled:pointer-events-none hover:bg-zinc-800 transition-all duration-300"
+                  >
+                    @if (retryingOrderId() === order.id) {
+                      Opening payment…
+                    } @else {
+                      Pay again
+                    }
+                  </button>
+                }
                 <button
                   type="button"
-                  class="w-full py-4 rounded-2xl border border-zinc-900/10 text-sm font-bold hover:bg-zinc-900 hover:text-white transition-all duration-300"
+                  class="cursor-pointer w-full py-4 rounded-2xl border border-zinc-900/10 text-sm font-bold hover:bg-zinc-900 hover:text-white transition-all duration-300"
                 >
                   Download Invoice
                 </button>
@@ -181,6 +198,79 @@
           </div>
         }
       </div>
+
+      @if (totalOrders() > 0) {
+        <div
+          class="flex flex-row flex-nowrap items-center justify-between gap-2 min-w-0 mt-8 pt-8 border-t border-zinc-100 max-md:overflow-x-auto max-md:overflow-y-hidden md:gap-4"
+        >
+          <label
+            class="flex shrink-0 items-center gap-2 text-sm font-medium text-zinc-700 md:gap-3"
+          >
+            <span class="text-[10px] font-bold uppercase tracking-widest text-zinc-400"
+              >Per page</span
+            >
+            <select
+              name="ordersPageSize"
+              class="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+              [ngModel]="pageSize()"
+              (ngModelChange)="onPageSizeModelChange($event)"
+            >
+              @for (n of pageSizeOptions; track n) {
+                <option [ngValue]="n">{{ n }}</option>
+              }
+            </select>
+          </label>
+
+          <nav
+            class="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1 md:flex-none md:w-auto md:justify-center md:gap-3"
+            aria-label="Order list pagination"
+          >
+            <button
+              type="button"
+              (click)="goPrevPage()"
+              [disabled]="page() <= 1"
+              [class]="paginationArrowBtnClass()"
+              aria-label="Previous page"
+            >
+              <lucide-icon name="chevron-left" [size]="18" [strokeWidth]="2" />
+            </button>
+
+            <div
+              class="flex min-h-11 min-w-0 flex-none flex-nowrap items-center justify-center gap-0.5 overflow-x-auto overscroll-x-contain px-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:h-auto md:min-h-0 md:gap-2 md:px-2 md:overflow-visible"
+            >
+              @for (slot of paginationSlots(); track $index) {
+                @if (slot === 'ellipsis') {
+                  <span
+                    class="inline-flex h-11 min-w-[1.25rem] shrink-0 items-center justify-center px-0.5 text-sm font-semibold text-zinc-500 select-none md:h-10 md:min-w-[1.5rem] md:px-1"
+                    aria-hidden="true"
+                    >…</span
+                  >
+                } @else {
+                  <button
+                    type="button"
+                    (click)="goToPage(slot)"
+                    [class]="paginationNumBtnClass(slot)"
+                    [attr.aria-current]="page() === slot ? 'page' : null"
+                    [attr.aria-label]="'Go to page ' + slot"
+                  >
+                    {{ slot }}
+                  </button>
+                }
+              }
+            </div>
+
+            <button
+              type="button"
+              (click)="goNextPage()"
+              [disabled]="page() >= totalPages()"
+              [class]="paginationArrowBtnClass()"
+              aria-label="Next page"
+            >
+              <lucide-icon name="chevron-right" [size]="18" [strokeWidth]="2" />
+            </button>
+          </nav>
+        </div>
+      }
     }
 
     <div

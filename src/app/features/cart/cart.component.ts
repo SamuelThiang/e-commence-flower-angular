@@ -1,6 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { computeOrderPricing } from '../../core/checkout-pricing';
+import {
+  CheckoutSettingsService,
+  FALLBACK_CHECKOUT_SETTINGS,
+} from '../../core/checkout-settings.service';
 import { ProductImageUrlPipe } from '../../shared/product-image-url.pipe';
 import { CartService } from '../../core/cart.service';
 
@@ -12,6 +17,11 @@ import { CartService } from '../../core/cart.service';
 })
 export class CartComponent {
   readonly cartService = inject(CartService);
+  private readonly checkoutSettings = inject(CheckoutSettingsService);
+
+  constructor() {
+    this.checkoutSettings.ensureLoaded();
+  }
 
   readonly editing = signal<{
     id: string;
@@ -26,11 +36,28 @@ export class CartComponent {
       .reduce((acc, item) => acc + item.product.price * item.quantity, 0),
   );
 
-  readonly shipping = 24;
-  readonly tax = computed(() => this.subtotal() * 0.036);
-  readonly total = computed(
-    () => this.subtotal() + this.shipping + this.tax(),
+  /** Cart summary assumes delivery for fee + tax preview */
+  readonly pricing = computed(() => {
+    const s =
+      this.checkoutSettings.settings() ?? FALLBACK_CHECKOUT_SETTINGS;
+    return computeOrderPricing(this.subtotal(), 'delivery', s);
+  });
+
+  readonly courierLabel = computed(
+    () =>
+      this.checkoutSettings.settings()?.courierFeeLabel ??
+      FALLBACK_CHECKOUT_SETTINGS.courierFeeLabel,
   );
+
+  readonly taxLabel = computed(
+    () =>
+      this.checkoutSettings.settings()?.taxDisplayLabel ??
+      FALLBACK_CHECKOUT_SETTINGS.taxDisplayLabel,
+  );
+
+  readonly shipping = computed(() => this.pricing().shipping);
+  readonly tax = computed(() => this.pricing().tax);
+  readonly total = computed(() => this.pricing().total);
 
   openEdit(item: {
     product: { id: string; name: string };

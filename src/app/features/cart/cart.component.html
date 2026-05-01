@@ -36,11 +36,11 @@
                   {{ item.product.name }}
                 </h3>
                 <p class="text-xs md:text-sm text-on-surface-variant mt-0.5">
-                  ${{ item.product.price.toFixed(2) }}
+                  RM {{ item.product.price.toFixed(2) }}
                 </p>
               </div>
               <div class="text-sm md:text-lg font-bold tracking-tighter shrink-0">
-                ${{ (item.product.price * item.quantity).toFixed(2) }}
+                RM {{ (item.product.price * item.quantity).toFixed(2) }}
               </div>
             </div>
             <div class="mt-2 space-y-0.5">
@@ -144,21 +144,23 @@
           <div class="flex justify-between items-center text-sm">
             <span class="text-on-surface-variant font-medium">Subtotal</span>
             <span class="font-bold tracking-tighter"
-              >${{ subtotal().toFixed(2) }}</span
+              >RM {{ subtotal().toFixed(2) }}</span
             >
           </div>
           <div class="flex justify-between items-center text-sm">
-            <span class="text-on-surface-variant font-medium"
-              >Priority Courier</span
-            >
+            <span class="text-on-surface-variant font-medium">{{
+              courierLabel()
+            }}</span>
             <span class="font-bold tracking-tighter"
-              >${{ shipping.toFixed(2) }}</span
+              >RM {{ shipping().toFixed(2) }}</span
             >
           </div>
           <div class="flex justify-between items-center text-sm">
-            <span class="text-on-surface-variant font-medium">Estimated Tax</span>
+            <span class="text-on-surface-variant font-medium">{{
+              taxLabel()
+            }}</span>
             <span class="font-bold tracking-tighter"
-              >${{ tax().toFixed(2) }}</span
+              >RM {{ tax().toFixed(2) }}</span
             >
           </div>
         </div>
@@ -169,7 +171,7 @@
           <div
             class="text-2xl font-extrabold tracking-tighter text-on-surface"
           >
-            ${{ total().toFixed(2) }}
+            RM {{ total().toFixed(2) }}
           </div>
         </div>
         <a

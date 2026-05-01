@@ -14,6 +14,8 @@ import addressesRoutes from './routes/addresses.js';
 
 import ordersRoutes from './routes/orders.js';
 
+import checkoutSettingsRoutes from './routes/checkoutSettings.js';
+
 import paymentRoutes from './routes/paymentRoutes.js';
 
 import cartRoutes from './routes/cart.js';
@@ -78,6 +80,8 @@ app.use('/api/users', usersRoutes);
 app.use('/api/addresses', addressesRoutes);
 
 app.use('/api/orders', ordersRoutes);
+
+app.use('/api/checkout-settings', checkoutSettingsRoutes);
 
 app.use('/api/payments', paymentRoutes);
 

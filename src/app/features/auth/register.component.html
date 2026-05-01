@@ -87,6 +87,32 @@
         <div class="space-y-2">
           <label
             class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 ml-1"
+            >Phone number</label
+          >
+          <input
+            type="tel"
+            inputmode="numeric"
+            autocomplete="tel"
+            required
+            maxlength="15"
+            pattern="[0-9]*"
+            placeholder="e.g. 0123456789 (digits only)"
+            [value]="phone()"
+            (input)="onPhoneInput($event)"
+            class="w-full bg-surface-container-high border-none rounded-2xl px-6 py-4 text-zinc-900 placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-900 transition-all"
+          />
+          @if (showPhoneFormatError()) {
+            <p class="ml-1 mt-1 text-[10px] text-red-600">
+              Enter 9–15 digits only (no spaces or symbols).
+            </p>
+          }
+          @if (phoneApiError(); as phErr) {
+            <p class="ml-1 mt-1 text-[10px] text-red-600" role="alert">{{ phErr }}</p>
+          }
+        </div>
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 ml-1"
             >Password</label
           >
           <div class="relative">

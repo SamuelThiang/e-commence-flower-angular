@@ -32,6 +32,24 @@ function isValidPassword(password) {
   return password.length >= PASSWORD_MIN_LENGTH;
 }
 
+/** Registration: digits only, 9–15 characters (no spaces, +, or symbols). */
+function validateRegisterPhone(raw) {
+  const trimmed = String(raw ?? '').trim();
+  if (!trimmed) {
+    return { ok: false, body: authErrorBody('Phone number is required', 'phone') };
+  }
+  if (!/^\d{9,15}$/.test(trimmed)) {
+    return {
+      ok: false,
+      body: authErrorBody(
+        'Phone must be 9–15 digits only (numbers only, no spaces or symbols).',
+        'phone',
+      ),
+    };
+  }
+  return { ok: true, phone: trimmed, digits: trimmed };
+}
+
 function mapUserRow(row) {
   return {
     id: row.id,
@@ -44,7 +62,7 @@ function mapUserRow(row) {
 
 /** POST /api/auth/register */
 router.post('/register', async (req, res) => {
-  const { email, password, firstName, lastName } = req.body || {};
+  const { email, password, firstName, lastName, phone: phoneRaw } = req.body || {};
   if (!String(email || '').trim()) {
     return res.status(400).json(authErrorBody('Email is required', 'email'));
   }
@@ -71,6 +89,12 @@ router.post('/register', async (req, res) => {
   }
   const emailNorm = email.toLowerCase().trim();
   const displayName = `${firstName} ${lastName}`.trim();
+  const phoneCheck = validateRegisterPhone(phoneRaw);
+  if (!phoneCheck.ok) {
+    return res.status(400).json(phoneCheck.body);
+  }
+  const { phone, digits: phoneDigits } = phoneCheck;
+
   try {
     const existing = await pool.query(
       `SELECT 1 FROM users WHERE email = $1 LIMIT 1`,
@@ -82,12 +106,25 @@ router.post('/register', async (req, res) => {
         .json(authErrorBody('This email already exists!', 'email'));
     }
 
+    const dupPhone = await pool.query(
+      `SELECT 1 FROM users
+       WHERE phone <> ''
+         AND regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g') = $1
+       LIMIT 1`,
+      [phoneDigits],
+    );
+    if (dupPhone.rowCount > 0) {
+      return res
+        .status(409)
+        .json(authErrorBody('This phone number is already registered.', 'phone'));
+    }
+
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, display_name)
-       VALUES ($1, $2, $3)
+      `INSERT INTO users (email, password_hash, display_name, phone)
+       VALUES ($1, $2, $3, $4)
        RETURNING id, email, display_name, phone, role`,
-      [emailNorm, hash, displayName],
+      [emailNorm, hash, displayName, phone],
     );
     const user = mapUserRow(result.rows[0]);
     const token = signToken(user);

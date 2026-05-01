@@ -17,6 +17,7 @@
     "db:migrate-004": "node scripts/run-sql.js db/migration_004_google_oauth_users.sql",
     "db:migrate-005": "node scripts/run-sql.js db/migration_005_order_status_labels.sql",
     "db:migrate-006": "node scripts/run-sql.js db/migration_006_failed_instead_of_awaiting.sql",
+    "db:migrate-007": "node scripts/run-sql.js db/migration_007_shop_checkout_settings.sql",
     "db:verify": "node scripts/verify-db.js"
   },
   "dependencies": {
