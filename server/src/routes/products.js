@@ -121,6 +121,93 @@ function unlinkUploadBasename(relativePath) {
   }
 }
 
+async function resolveCategoryUuid(poolOrClient, body) {
+  const rawId = body.categoryId ?? body.category_id;
+  const rawSlug = body.categorySlug ?? body.category_slug;
+  if (rawId != null && String(rawId).trim() !== '') {
+    const idStr = String(rawId).trim();
+    const r = await poolOrClient.query(
+      `SELECT id FROM categories WHERE id::text = $1 LIMIT 1`,
+      [idStr],
+    );
+    if (r.rowCount > 0) return r.rows[0].id;
+  }
+  if (rawSlug != null && String(rawSlug).trim() !== '') {
+    const r = await poolOrClient.query(
+      `SELECT id FROM categories WHERE slug = $1 LIMIT 1`,
+      [String(rawSlug).trim()],
+    );
+    if (r.rowCount > 0) return r.rows[0].id;
+  }
+  return null;
+}
+
+/**
+ * POST /api/products
+ * JSON body: admin-only create. Then use POST /api/products/:id/image (and optional /gallery) for uploads.
+ */
+router.post('/', productImageUploadAuth, async (req, res) => {
+  const body = req.body || {};
+  const id =
+    body.id != null && String(body.id).trim() !== ''
+      ? String(body.id).trim().slice(0, 32)
+      : '';
+  const name = body.name != null ? String(body.name).trim() : '';
+  const description =
+    body.description != null ? String(body.description).trim() : '';
+  const price = Number(body.price);
+  const image =
+    body.image != null && String(body.image).trim() !== ''
+      ? String(body.image).trim()
+      : '';
+  const seasonal = Boolean(body.seasonal);
+  const exclusive = Boolean(body.exclusive);
+  const limited = Boolean(body.limited);
+
+  if (!id || !name || !description || !Number.isFinite(price) || price < 0) {
+    return res.status(400).json({
+      error:
+        'Invalid body: need id (max 32 chars), name, description, price (number >= 0), and categoryId or categorySlug',
+    });
+  }
+
+  try {
+    const categoryId = await resolveCategoryUuid(pool, body);
+    if (!categoryId) {
+      return res.status(400).json({
+        error:
+          'Unknown category: set categoryId (UUID) or categorySlug (e.g. from GET /api/categories)',
+      });
+    }
+
+    await pool.query(
+      `INSERT INTO products (id, name, category_id, price, image, description,
+         seasonal, exclusive, limited, order_count)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0)`,
+      [
+        id,
+        name,
+        categoryId,
+        price,
+        image,
+        description,
+        seasonal,
+        exclusive,
+        limited,
+      ],
+    );
+
+    const mapped = await fetchProductMappedWithGallery(pool, id);
+    return res.status(201).json(mapped);
+  } catch (e) {
+    if (e && e.code === '23505') {
+      return res.status(409).json({ error: 'Product id already exists' });
+    }
+    console.error(e);
+    return res.status(500).json({ error: 'Failed to create product' });
+  }
+});
+
 /**
  * POST /api/products/:id/image
  * Multipart field name: `image`. Sets primary cover (`products.image`). Auth: admin JWT or X-Admin-Upload-Key.

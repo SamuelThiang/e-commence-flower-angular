@@ -191,6 +191,7 @@ On **localhost**, ToyyibPay **cannot** POST to your callback URL — **`sync-ret
 | DELETE | `/api/cart/all` | Bearer |
 | POST | `/api/cart/merge` | Bearer |
 | GET | `/api/products` | No |
+| POST | `/api/products` | Admin — JSON **`{ id, name, categoryId \| categorySlug, price, description, image?, seasonal?, exclusive?, limited? }`**; then **`POST …/:id/image`** for file upload |
 | GET | `/api/products/:id` | No |
 | POST | `/api/products/:id/image` | Admin — multipart **`image`**; sets primary **`products.image`** (detail hero + listings) |
 | POST | `/api/products/:id/gallery` | Admin — multipart **`image`**; appends one extra detail-gallery file (`id_g_<uuid>.ext`, stored in **`product_gallery_images`**) |
