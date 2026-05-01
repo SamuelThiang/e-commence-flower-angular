@@ -1,22 +1,27 @@
 <div class="bg-surface">
-  <section class="relative h-[80vh] md:h-[90vh] w-full px-4 md:px-8 pt-20 md:pt-24">
-    <div class="relative w-full h-full overflow-hidden rounded-3xl md:rounded-[2.5rem]">
+  <!-- Hero: ~56vh capped (~560px) mobile, ~48vh capped (680px) desktop — common 2024–26 pattern vs full 90vh -->
+  <section class="relative w-full px-4 md:px-8 pt-20 md:pt-24">
+    <div
+      appRevealOnScroll
+      [staggerMs]="0"
+      class="relative mx-auto w-full max-w-[1440px] min-h-[280px] h-[min(56vh,560px)] md:h-[min(48vh,680px)] overflow-hidden rounded-3xl md:rounded-[2.5rem]"
+    >
       <img
         class="w-full h-full object-cover"
         src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5C_gg1XvNChhp8ZqKsMedToHGm32Wrv2N4mm0YQomyj4gDjF2_KeMTldKRZctj8z2gHL2dFetRzELTwJAa1j6J9ShBh2L-Nz5JSn2WD2r5knM2GmTUf80DXkzLNU0cAKhI2sqOIAm3ZHhEqB7idx_Mvm1BaDLIP2zVOAyceI0pWRjsF9MEB5IXUrmK76Dgz7vJBBzOJ4ys6LB_UtxPxqZhoGejK9LtILkoHh-2XlObNoTYNdeRiVBwwlfHyBF_HVVhKGPu2tIPxX5"
         alt="Hero"
       />
-      <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="absolute inset-0 flex items-center justify-center p-4 md:p-8">
         <div
-          class="glass-card p-8 md:p-16 rounded-[2rem] max-w-2xl text-center shadow-2xl"
+          class="glass-card p-6 md:p-10 lg:p-12 rounded-[2rem] max-w-xl md:max-w-2xl text-center shadow-2xl"
         >
           <h1
-            class="text-3xl md:text-6xl font-bold tracking-tighter text-on-surface mb-4 md:mb-6 leading-tight"
+            class="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tighter text-on-surface mb-3 md:mb-5 leading-tight"
           >
             Artistry in Every Bloom
           </h1>
           <p
-            class="text-sm md:text-xl text-on-surface-variant font-medium mb-6 md:mb-8"
+            class="text-sm md:text-lg text-on-surface-variant font-medium mb-5 md:mb-7 max-w-md mx-auto"
           >
             Curating the world's most delicate specimens for the modern digital
             gallery.
@@ -33,10 +38,18 @@
 
   <section class="mt-24 px-4 md:px-8">
     <div class="max-w-[1440px] mx-auto">
-      <h2 class="text-3xl font-bold tracking-tight mb-12">The Latest</h2>
+      <h2
+        appRevealOnScroll
+        [staggerMs]="0"
+        class="text-3xl font-bold tracking-tight mb-12"
+      >
+        The Latest
+      </h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-        @for (product of products(); track product.id) {
+        @for (product of products(); track product.id; let i = $index) {
           <a
+            appRevealOnScroll
+            [staggerMs]="i * 110"
             [routerLink]="['/product', product.id]"
             class="cursor-pointer group h-full block"
           >
@@ -70,13 +83,19 @@
   </section>
 
   <section class="mt-24 px-4 md:px-8 max-w-[1440px] mx-auto">
-    <h2 class="text-2xl md:text-3xl font-bold tracking-tight mb-8 md:text-center">
+    <h2
+      appRevealOnScroll
+      [staggerMs]="0"
+      class="text-2xl md:text-3xl font-bold tracking-tight mb-8 md:text-center"
+    >
       Curated Selections
     </h2>
     <div
       class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 h-auto md:h-[800px]"
     >
       <div
+        appRevealOnScroll
+        [staggerMs]="110"
         class="md:col-span-8 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[400px] md:min-h-0"
       >
         <img
@@ -103,6 +122,8 @@
         </div>
       </div>
       <div
+        appRevealOnScroll
+        [staggerMs]="220"
         class="md:col-span-4 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[300px] md:min-h-0"
       >
         <img
@@ -127,6 +148,8 @@
         </div>
       </div>
       <div
+        appRevealOnScroll
+        [staggerMs]="330"
         class="md:col-span-4 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[300px] md:min-h-0"
       >
         <img
@@ -145,6 +168,8 @@
         </div>
       </div>
       <div
+        appRevealOnScroll
+        [staggerMs]="440"
         class="md:col-span-8 relative rounded-2xl overflow-hidden group bg-surface-container-low cursor-pointer min-h-[300px] md:min-h-0"
       >
         <img
@@ -170,15 +195,21 @@
   >
     <div class="relative z-10 max-w-3xl mx-auto">
       <span
+        appRevealOnScroll
+        [staggerMs]="0"
         class="text-zinc-500 text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] mb-4 md:mb-8 block"
         >Our Philosophy</span
       >
       <h2
+        appRevealOnScroll
+        [staggerMs]="110"
         class="text-2xl md:text-5xl font-bold tracking-tight text-on-surface mb-6 md:mb-10 leading-[1.1]"
       >
         The botanical world is our muse; the digital space is our canvas.
       </h2>
       <p
+        appRevealOnScroll
+        [staggerMs]="220"
         class="text-base md:text-xl text-on-surface-variant font-light leading-relaxed mb-8 md:mb-12"
       >
         We believe that flowers are more than decoration—they are specimens of
@@ -186,6 +217,8 @@
         unique architectural integrity and emotional resonance.
       </p>
       <div
+        appRevealOnScroll
+        [staggerMs]="330"
         class="grid grid-cols-3 gap-4 md:gap-12 text-on-surface font-semibold tracking-tighter"
       >
         <div class="flex flex-col">
