@@ -316,7 +316,23 @@ router.post(
         return res.status(400).json({ error: err.message || 'Upload failed' });
       }
       if (!req.file) {
-        return res.status(400).json({ error: 'Missing file field "image"' });
+        const ct = String(req.headers['content-type'] || '');
+        const rawImg = req.body?.image ?? req.body?.imageUrl ?? req.body?.url;
+        const looksLikeUrl =
+          typeof rawImg === 'string' && /^https?:\/\//i.test(rawImg.trim());
+        if (ct.includes('application/json') || looksLikeUrl) {
+          const id = req.params.id;
+          return res.status(400).json({
+            error:
+              'Wrong endpoint for JSON / URLs: use POST /api/products/:id/gallery-url with body { "image": "https://..." }.',
+            usePath: `/api/products/${id}/gallery-url`,
+          });
+        }
+        return res.status(400).json({
+          error: 'Missing file field "image"',
+          hint:
+            'Body must be form-data with key "image" (type File). For Cloudinary/HTTPS URLs use POST .../gallery-url and JSON instead.',
+        });
       }
       next();
     });

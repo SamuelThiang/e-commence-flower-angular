@@ -228,7 +228,21 @@ curl -X POST -H "X-Admin-Upload-Key: YOUR_SECRET" -H "Content-Type: application/
   https://YOUR_API/api/products/1/gallery-url
 ```
 
-**Railway note:** The container filesystem is usually **ephemeral**; redeploys can delete uploaded files. For durable hosting use object storage (S3, Cloudinary, etc.) or attach a **Railway volume** and point uploads at that path.
+**So images are not “missing” after deploy**
+
+1. **Persistent disk (same server, files stay on a volume)**  
+   - Add a **volume** on your host (e.g. Railway: **Settings → Volumes** → mount e.g. `/data/uploads/products`).  
+   - Set in `.env` / service variables:  
+     `PRODUCT_UPLOAD_DIR=/data/uploads/products`  
+   - Restart the API. `POST …/image` and `POST …/gallery` will write there; `express.static` still serves from that folder at **`/uploads/products/...`**.
+
+2. **Object storage / CDN (nothing on the app disk)**  
+   - Store **full `https://…` URLs** in the DB: cover via `UPDATE products SET image = 'https://…'` or seed JSON; extras via **`POST …/gallery-url`**. Images survive any redeploy because they are not on the container.
+
+3. **Backups**  
+   - If you keep files under `server/uploads/products`, back up that folder (zip/rsync) before major deploys until you use (1) or (2).
+
+Default **`PRODUCT_UPLOAD_DIR`** is `server/uploads/products` under the process working directory (fine for local dev; often **not** durable on PaaS).
 
 ## Tables
 
