@@ -54,6 +54,26 @@ export class OrdersComponent {
     });
   }
 
+  /** Tailwind chip for order lifecycle status (aligned with server `ORDER_STATUSES`). */
+  orderStatusBadgeClass(status: Order['status']): string {
+    const base =
+      'px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ';
+    switch (status) {
+      case 'Completed':
+        return base + 'bg-emerald-50 text-emerald-700';
+      case 'In Transit':
+        return base + 'bg-blue-50 text-blue-600';
+      case 'Ready':
+        return base + 'bg-cyan-50 text-cyan-800';
+      case 'Processing':
+        return base + 'bg-amber-50 text-amber-800';
+      case 'Failed':
+        return base + 'bg-red-50 text-red-700';
+      default:
+        return base + 'bg-zinc-100 text-zinc-600';
+    }
+  }
+
   formatOrderDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-US', {
       month: 'long',

@@ -45,7 +45,13 @@ export interface OrderSubmitLine {
 export interface Order {
   id: string;
   date: string;
-  status: 'Delivered' | 'In Transit' | 'Processing';
+  /** DB values — see server `ORDER_STATUSES` */
+  status:
+    | 'Failed'
+    | 'Processing'
+    | 'In Transit'
+    | 'Ready'
+    | 'Completed';
   items: OrderItem[];
   total: number;
   uid?: string;

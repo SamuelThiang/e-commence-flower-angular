@@ -115,6 +115,30 @@ For CLI-based setup you can also run `npx neonctl@latest init` ([Neon CLI](https
 
 API base URL: `http://localhost:3000/api`
 
+**Order statuses** (column `orders.status`): **`Failed`** (unpaid or FPX declined — retry payment), **`Processing`** (paid — shop preparing), **`In Transit`** (courier delivery), **`Ready`** (self-pickup ready), **`Completed`** (done). Legacy **`Delivered`** → **`Completed`** (**`npm run db:migrate-005`**). If you still have **`Awaiting payment`** from an older build, run **`npm run db:migrate-006`**.
+
+Payment code layout (gateway-agnostic entrypoint, ToyyibPay isolated): `src/routes/paymentRoutes.js` → `src/controllers/paymentController.js` → `src/services/toyyibpayService.js` (+ `src/config/toyyibpay.js`, `src/constants/paymentGateways.js`). Add another gateway by creating `ipay88Service.js` (or similar) and wiring routes/controllers without changing order placement.
+
+### ToyyibPay (sandbox / production)
+
+Official API reference: [toyyibpay.com/apireference](https://toyyibpay.com/apireference/) (Create Bill, callback hash, return URL query params, Get Bill Transactions).
+
+1. Register at [dev.toyyibpay.com](https://dev.toyyibpay.com/) (sandbox) or [toyyibpay.com](https://toyyibpay.com/) (live).
+2. In the dashboard, create a **Category** and copy **Category Code** and your **User Secret Key**.
+3. In `server/.env` set:
+   - `TOYYIBPAY_ENABLED=true`
+   - `TOYYIBPAY_USER_SECRET_KEY=...`
+   - `TOYYIBPAY_CATEGORY_CODE=...`
+   - `TOYYIBPAY_API_BASE=https://dev.toyyibpay.com` (sandbox) or `https://toyyibpay.com` (production)
+   - `FRONTEND_ORIGIN=http://localhost:4200` (first origin is used for the customer **return** URL: `/checkout/payment-return`)
+   - Optional `TOYYIBPAY_CALLBACK_URL=https://YOUR_PUBLIC_HOST/api/payments/toyyibpay/callback` — **server-side** callback (ToyyibPay cannot POST to `localhost`; use a tunnel such as ngrok for local testing, or rely on return URL + manual status checks for quick sandbox trials).
+
+When enabled, **POST /api/orders** saves the order as **`Failed`** (pending FPX), inserts a `payments` row, creates a ToyyibPay bill, and returns JSON `{ ..., "payment": { "paymentUrl", "billCode" } }`. The Angular checkout redirects the browser to `paymentUrl`. After payment, ToyyibPay redirects the shopper back with query params; the optional callback verifies an **MD5** hash and moves the order to **`Processing`** when `status=1`. FPX failure (`status=3`) sets the order to **`Failed`**.
+
+On **localhost**, ToyyibPay **cannot** POST to your callback URL — **`sync-return`** on **`/checkout/payment-return`** confirms payment via **Get Bill Transactions** and moves **`Failed` → `Processing`** like the callback.
+
+**Troubleshooting “missing BillCode” / payment link failed:** ToyyibPay returned JSON **without** `BillCode` — usually wrong **User Secret Key**, wrong **Category Code** (must be the **Category Code** from *Create Category* / dashboard, **not** a bill code), inactive category, or validation (email/amount). Use **[dev.toyyibpay.com](https://dev.toyyibpay.com/)** credentials only with `TOYYIBPAY_API_BASE=https://dev.toyyibpay.com`. Set **`TOYYIBPAY_FALLBACK_EMAIL`** if needed. **Restart the API** after changing `.env` (`npm run dev` in `server/` auto-restarts on file save; plain `npm start` does not). Check the terminal for `[ToyyibPay createBill] failed — full response:` — the checkout dialog also appends a **Raw:** excerpt from ToyyibPay.
+
 ### Google Sign-In (setup checklist)
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → select or create a project.
@@ -144,6 +168,9 @@ API base URL: `http://localhost:3000/api`
 | PATCH | `/api/addresses/:id/default` | Bearer |
 | GET | `/api/orders` | Bearer |
 | POST | `/api/orders` | Bearer |
+| PATCH | `/api/orders/:id/status` | Bearer + **admin** `users.role` — body `{ "status" }`; allowed: `Failed`, `Processing`, `In Transit`, `Ready`, `Completed` |
+| POST | `/api/payments/toyyibpay/callback` | No — form body from ToyyibPay (set `TOYYIBPAY_CALLBACK_URL` to this path on a public URL; **localhost cannot receive this**) |
+| POST | `/api/payments/toyyibpay/sync-return` | Bearer — body `{ billCode, orderId }`; verifies payment via ToyyibPay **Get Bill Transactions** (used after Return URL on dev/local) |
 | GET | `/api/cart` | Bearer |
 | POST | `/api/cart/items` | Bearer |
 | PATCH | `/api/cart/items/:lineId` | Bearer |

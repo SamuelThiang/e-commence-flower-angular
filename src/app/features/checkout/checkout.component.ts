@@ -12,7 +12,10 @@ import { finalize } from 'rxjs/operators';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../../core/auth.service';
 import { AddressApiService } from '../../core/address-api.service';
-import { OrderApiService } from '../../core/order-api.service';
+import {
+  OrderApiService,
+  type CreateOrderPayment,
+} from '../../core/order-api.service';
 import { CartService } from '../../core/cart.service';
 import type { CartLine } from '../../shared/catalog';
 import { ProductImageUrlPipe } from '../../shared/product-image-url.pipe';
@@ -335,6 +338,23 @@ export class CheckoutComponent {
       .subscribe({
         next: (order) => {
           this.cartService.clearAfterOrderSuccess();
+          const pay = order.payment as CreateOrderPayment | undefined;
+          if (pay && 'paymentUrl' in pay && pay.paymentUrl) {
+            window.location.assign(pay.paymentUrl);
+            return;
+          }
+          if (pay && 'error' in pay && pay.error) {
+            this.resultDialog.showError({
+              title: 'Order saved — payment link failed',
+              message: pay.error,
+              detailLine: order.id,
+              primaryLabel: 'View orders',
+              onPrimary: () => {
+                void this.router.navigate(['/orders']);
+              },
+            });
+            return;
+          }
           this.resultDialog.showSuccess({
             title: 'Order successful!',
             message:

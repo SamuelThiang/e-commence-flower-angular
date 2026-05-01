@@ -148,7 +148,14 @@ CREATE TRIGGER trg_inventory_updated_at
 CREATE TABLE IF NOT EXISTS orders (
   id                      VARCHAR(64)    PRIMARY KEY,
   user_id                 UUID           NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  status                  VARCHAR(32)    NOT NULL DEFAULT 'Processing',
+  status                  VARCHAR(32)    NOT NULL DEFAULT 'Processing'
+                          CHECK (status IN (
+                            'Failed',
+                            'Processing',
+                            'In Transit',
+                            'Ready',
+                            'Completed'
+                          )),
   total                   NUMERIC(12, 2) NOT NULL,
   delivery_option         VARCHAR(16)    NOT NULL DEFAULT 'delivery',
   preferred_delivery_date VARCHAR(64),

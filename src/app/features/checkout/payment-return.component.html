@@ -1,0 +1,55 @@
+<div
+  class="min-h-screen pt-28 md:pt-32 pb-16 px-6 max-w-lg mx-auto flex flex-col gap-8"
+>
+  <div class="text-center">
+    @if (statusId === '1') {
+      <lucide-icon
+        name="circle-check"
+        class="mx-auto text-emerald-600 mb-4"
+        [size]="48"
+        [strokeWidth]="1.5"
+      />
+    } @else if (statusId === '3') {
+      <lucide-icon
+        name="circle-x"
+        class="mx-auto text-red-600 mb-4"
+        [size]="48"
+        [strokeWidth]="1.5"
+      />
+    } @else {
+      <lucide-icon
+        name="clock"
+        class="mx-auto text-amber-600 mb-4"
+        [size]="48"
+        [strokeWidth]="1.5"
+      />
+    }
+    <h1 class="text-2xl font-extrabold tracking-tight text-zinc-900 mb-2">
+      {{ title }}
+    </h1>
+    <p class="text-sm text-on-surface-variant leading-relaxed">{{ body }}</p>
+    @if (orderId) {
+      <p class="mt-4 text-xs font-mono text-zinc-500">Reference {{ orderId }}</p>
+    }
+    @if (syncHint(); as hint) {
+      <p
+        class="mt-4 text-xs text-zinc-600 leading-relaxed px-2"
+        role="status"
+      >
+        {{ hint }}
+      </p>
+    }
+  </div>
+  <div class="flex flex-col gap-3">
+    <a
+      routerLink="/orders"
+      class="block text-center w-full py-4 rounded-full bg-zinc-900 text-white text-xs font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors"
+      >My orders</a
+    >
+    <a
+      routerLink="/"
+      class="block text-center w-full py-4 rounded-full border border-zinc-200 text-zinc-900 text-xs font-bold uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+      >Continue shopping</a
+    >
+  </div>
+</div>

@@ -1,5 +1,10 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
+import { getToyyibPayConfig } from '../config/toyyibpay.js';
+import { ORDER_STATUSES, isAllowedOrderStatus } from '../constants/orderStatus.js';
+import { GATEWAY_TOYYIBPAY } from '../constants/paymentGateways.js';
+import { createToyyibBill } from '../services/toyyibpayService.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 
 const router = Router();
@@ -242,6 +247,9 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Invalid order payload' });
   }
 
+  const tp = getToyyibPayConfig();
+  const orderStatus = tp ? 'Failed' : status || 'Processing';
+
   const normalizedLines = [];
   for (const raw of items) {
     const pid = lineProductId(raw);
@@ -280,7 +288,7 @@ router.post('/', requireAuth, async (req, res) => {
       id,
       req.userId,
       orderedAt,
-      status || 'Processing',
+      orderStatus,
       itemsJson,
       total,
       preferredDeliveryDate || null,
@@ -290,7 +298,7 @@ router.post('/', requireAuth, async (req, res) => {
       id,
       req.userId,
       orderedAt,
-      status || 'Processing',
+      orderStatus,
       total,
       preferredDeliveryDate || null,
       delOpt,
@@ -412,6 +420,27 @@ router.post('/', requireAuth, async (req, res) => {
       );
     }
 
+    if (tp) {
+      await client.query('SAVEPOINT sp_pay_ins');
+      try {
+        await client.query(
+          `INSERT INTO payments (order_id, user_id, amount, currency, status, payment_method, gateway)
+           VALUES ($1, $2, $3, 'MYR', 'pending', 'fpx', $4)`,
+          [id, req.userId, total, GATEWAY_TOYYIBPAY],
+        );
+      } catch (e) {
+        await client.query('ROLLBACK TO SAVEPOINT sp_pay_ins');
+        if (e.code === '42P01') {
+          console.warn(
+            'payments table missing — run DB migrations; order committed without payment row.',
+          );
+        } else {
+          throw e;
+        }
+      }
+      await client.query('RELEASE SAVEPOINT sp_pay_ins');
+    }
+
     await client.query('SAVEPOINT sp_cart_clear');
     try {
       await client.query(
@@ -431,7 +460,50 @@ router.post('/', requireAuth, async (req, res) => {
     const saved = await selectOrderById(pool, id);
     const row = saved.rows[0];
     const outItems = await itemsForOrder(row, pool);
-    return res.status(201).json(mapOrderRow(row, outItems));
+    const mapped = mapOrderRow(row, outItems);
+
+    let payment = null;
+    if (tp) {
+      try {
+        const ur = await pool.query(
+          `SELECT display_name, phone, email FROM users WHERE id = $1`,
+          [req.userId],
+        );
+        const u = ur.rows[0] || {};
+        const bill = await createToyyibBill({
+          orderId: id,
+          amountMyr: Number(total),
+          billTo: u.display_name || 'Customer',
+          billEmail: req.userEmail || u.email || '',
+          billPhone: u.phone || '',
+        });
+        await pool.query(
+          `UPDATE payments
+           SET transaction_id = $1,
+               gateway_response = $2::jsonb
+           WHERE order_id = $3 AND gateway = $4`,
+          [
+            bill.billCode,
+            JSON.stringify({ createBillResponse: bill.rawText }),
+            id,
+            GATEWAY_TOYYIBPAY,
+          ],
+        );
+        payment = {
+          billCode: bill.billCode,
+          paymentUrl: bill.paymentUrl,
+        };
+      } catch (e) {
+        console.error('ToyyibPay createBill failed', e);
+        payment = {
+          error:
+            e?.message ||
+            'Payment link could not be created. Check My Orders or contact support.',
+        };
+      }
+    }
+
+    return res.status(201).json({ ...mapped, payment });
   } catch (e) {
     await client.query('ROLLBACK');
     if (e.code === '23505') {
@@ -460,6 +532,41 @@ router.post('/', requireAuth, async (req, res) => {
     });
   } finally {
     client.release();
+  }
+});
+
+/** PATCH /api/orders/:id/status — shop admin only (set courier / pickup-ready / completed). */
+router.patch('/:id/status', requireAuth, requireAdmin, async (req, res) => {
+  const orderId = req.params.id;
+  const nextStatus = req.body?.status;
+  if (!isAllowedOrderStatus(nextStatus)) {
+    return res.status(400).json({
+      error: 'Invalid status',
+      allowed: ORDER_STATUSES,
+    });
+  }
+
+  try {
+    const upd = await pool.query(
+      `UPDATE orders SET status = $1 WHERE id = $2 RETURNING id`,
+      [nextStatus.trim(), orderId],
+    );
+    if (upd.rowCount === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    const saved = await selectOrderById(pool, orderId);
+    const row = saved.rows[0];
+    const outItems = await itemsForOrder(row, pool);
+    return res.json(mapOrderRow(row, outItems));
+  } catch (e) {
+    if (e.code === '23514') {
+      return res.status(400).json({
+        error: 'Status not allowed by database constraint',
+        allowed: ORDER_STATUSES,
+      });
+    }
+    console.error(e);
+    return res.status(500).json({ error: 'Failed to update order status' });
   }
 });
 
